@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import cn.kizzzy.javafx.display.DisplayTabView?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.lang.String?>
+<?import java.net.URL?>
+<AnchorPane minHeight="300.0" minWidth="400.0" xmlns="http://javafx.com/javafx/10.0.2-internal"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.kizzzy.toolkit.controller.QqtLocalController">
+    <children>
+        <VBox spacing="8.0" AnchorPane.bottomAnchor="8.0" AnchorPane.leftAnchor="8.0" AnchorPane.rightAnchor="8.0"
+              AnchorPane.topAnchor="8.0">
+            <children>
+                <VBox spacing="8.0">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" spacing="8.0" VBox.vgrow="NEVER">
+                            <children>
+                                <TextField fx:id="filterValue" HBox.hgrow="ALWAYS"/>
+                                <Button onAction="#onFilter" text="查找节点"/>
+                                <Button mnemonicParsing="false" onAction="#showPrev" text="上一帧" HBox.hgrow="NEVER"/>
+                                <Button mnemonicParsing="false" onAction="#showNext" text="下一帧" HBox.hgrow="NEVER"/>
+                                <Button mnemonicParsing="false" onAction="#play" text="播放" HBox.hgrow="NEVER"/>
+                                <Button mnemonicParsing="false" onAction="#playThis" text="连续播放" HBox.hgrow="NEVER"/>
+                            </children>
+                        </HBox>
+                        <HBox alignment="CENTER_RIGHT" spacing="8.0" VBox.vgrow="NEVER">
+                            <children>
+                                <AnchorPane HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <ProgressBar fx:id="progress_bar" progress="0.0" AnchorPane.bottomAnchor="0.0"
+                                                     AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                                                     AnchorPane.topAnchor="0.0"/>
+                                    </children>
+                                </AnchorPane>
+                                <CheckBox fx:id="include_leaf" text="包含叶节点"/>
+                                <CheckBox fx:id="canvas_black" text="Canvas黑色"/>
+                                <CheckBox fx:id="image_filter" text="过滤背景"/>
+                                <CheckBox fx:id="lock_tab" text="Tap锁定"/>
+                                <ChoiceBox fx:id="show_choice">
+                                    <items>
+                                        <FXCollections fx:factory="observableArrayList">
+                                            <String fx:value="NONE"/>
+                                            <String fx:value="OFFSET"/>
+                                            <String fx:value="CENTER"/>
+                                            <String fx:value="GSO"/>
+                                        </FXCollections>
+                                    </items>
+                                </ChoiceBox>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+                <SplitPane dividerPositions="0.3" VBox.vgrow="ALWAYS">
+                    <items>
+                        <AnchorPane maxWidth="360.0" minWidth="240.0">
+                            <children>
+                                <TreeView fx:id="tree_view" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                                          AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+                            </children>
+                        </AnchorPane>
+                        <AnchorPane>
+                            <children>
+                                <DisplayTabView fx:id="display_tab" tabClosingPolicy="UNAVAILABLE"
+                                                AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                                                AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+                            </children>
+                        </AnchorPane>
+                    </items>
+                </SplitPane>
+                <AnchorPane VBox.vgrow="NEVER">
+                    <children>
+                        <Label fx:id="tips" text="1234" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                               AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+                    </children>
+                </AnchorPane>
+            </children>
+        </VBox>
+    </children>
+    <stylesheets>
+        <URL value="@../../css/style.css"/>
+    </stylesheets>
+</AnchorPane>
