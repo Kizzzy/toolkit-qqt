@@ -2,10 +2,12 @@ package cn.kizzzy.qqt;
 
 public class QqtConfig {
     
-    public String pkg_data;
+    public String qqt_path;
     
-    public String pkg_last;
+    public String data_path;
     
-    public String pkg_extra;
+    public String export_image_path;
+    
+    public String export_file_path;
     
 }

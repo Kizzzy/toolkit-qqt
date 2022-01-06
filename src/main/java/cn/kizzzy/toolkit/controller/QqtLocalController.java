@@ -24,12 +24,10 @@ import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
 import cn.kizzzy.toolkit.extrator.PlayThisTask;
 import cn.kizzzy.toolkit.view.AbstractView;
-import cn.kizzzy.vfs.IFileHandler;
 import cn.kizzzy.vfs.IPackage;
 import cn.kizzzy.vfs.ITree;
 import cn.kizzzy.vfs.Separator;
 import cn.kizzzy.vfs.handler.BufferedImageHandler;
-import cn.kizzzy.vfs.handler.BytesFileHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
 import cn.kizzzy.vfs.handler.QqtIdxFileHandler;
@@ -135,12 +133,9 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
             new MenuItemArg(0, "设置", this::openSetting),
             new MenuItemArg(1, "加载Idx", this::loadPackage),
             new MenuItemArg(1, "加载目录", this::loadFolder),
-            new MenuItemArg(2, "删除此节点", this::removeNode),
-            new MenuItemArg(2, "添加到临时包", this::addToTemp),
-            new MenuItemArg(3, "导出/新包", this::newPackage),
-            new MenuItemArg(3, "导出/文件", this::exportFile),
-            new MenuItemArg(3, "导出/图片", this::exportImage),
-            new MenuItemArg(4, "复制路径", this::copyPath),
+            new MenuItemArg(2, "导出/文件", this::exportFile),
+            new MenuItemArg(2, "导出/图片", this::exportImage),
+            new MenuItemArg(3, "复制路径", this::copyPath),
         });
         
         addListener(DisplayType.TOAST_TIPS, this::toastTips);
@@ -200,15 +195,15 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     protected void loadPackage(ActionEvent actionEvent) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("选择idx文件");
-        if (StringHelper.isNotNullAndEmpty(config.pkg_last)) {
-            chooser.setInitialDirectory(new File(config.pkg_last));
+        if (StringHelper.isNotNullAndEmpty(config.data_path)) {
+            chooser.setInitialDirectory(new File(config.data_path));
         }
         chooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("IDX", "*.idx")
         );
         File file = chooser.showOpenDialog(stage);
         if (file != null && file.getAbsolutePath().endsWith(".idx")) {
-            config.pkg_last = file.getParent();
+            config.data_path = file.getParent();
             
             if (loadedKvs.containsKey(file.getAbsolutePath())) {
                 LogHelper.info("idx is loaded");
@@ -239,12 +234,12 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     private void loadFolder(ActionEvent actionEvent) {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("选择QQ堂根目录");
-        if (StringHelper.isNotNullAndEmpty(config.pkg_last)) {
-            chooser.setInitialDirectory(new File(config.pkg_last));
+        if (StringHelper.isNotNullAndEmpty(config.qqt_path)) {
+            chooser.setInitialDirectory(new File(config.qqt_path));
         }
         File file = chooser.showDialog(stage);
         if (file != null) {
-            config.pkg_last = file.getAbsolutePath();
+            config.qqt_path = file.getAbsolutePath();
             
             if (loadedKvs.containsKey(file.getAbsolutePath())) {
                 LogHelper.info("folder is loaded");
@@ -390,79 +385,73 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     }
     
     @FXML
-    protected void newPackage(ActionEvent event) {
-        final TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            if (StringHelper.isNullOrEmpty(config.pkg_extra)) {
-                openSetting(null);
-                return;
-            }
-            
-            List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
-            String file = String.format("%s/pkg/%s.pkg", config.pkg_extra, System.currentTimeMillis());
-            // todo PkgHelper.savePackage(list, file);
-        }
-    }
-    
-    @FXML
     protected void exportFile(ActionEvent event) {
+        if (StringHelper.isNullOrEmpty(config.export_file_path)) {
+            openSetting(null);
+            return;
+        }
+        
         TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            if (StringHelper.isNullOrEmpty(config.pkg_extra)) {
-                openSetting(null);
-                return;
-            }
-            
+        if (selected == null) {
+            return;
+        }
+        
+        IPackage target = null;
+        Node<QqtFile> node = selected.getValue();
+        
+        List<Leaf<QqtFile>> list = tree.listLeaf(node, true);
+        for (Leaf<QqtFile> leaf : list) {
             try {
-                IFileHandler<byte[]> handler = new BytesFileHandler();
-                IPackage target = new FilePackage(config.pkg_extra);
-                
-                List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());// listAll(selected, tree);
-                for (Leaf<QqtFile> file : list) {
-                    try {
-                        target.save("file/" + file.path, (byte[]) vfs.load(file.path, handler), handler);
-                    } catch (Exception e) {
-                        LogHelper.error("extra file<{}> failed: ", file.path, e);
-                    }
+                if (target == null) {
+                    String pkgName = leaf.pack.replace(".idx", "");
+                    target = new FilePackage(config.export_file_path + "/" + pkgName);
                 }
+                
+                byte[] data = vfs.load(leaf.path, byte[].class);
+                target.save(leaf.path, data);
             } catch (Exception e) {
-                LogHelper.error("export file failed: {}", e);
+                LogHelper.info(String.format("export file failed: %s", leaf.path), e);
             }
         }
     }
     
     @FXML
     protected void exportImage(ActionEvent event) {
+        if (StringHelper.isNullOrEmpty(config.export_image_path)) {
+            openSetting(null);
+            return;
+        }
+        
         final TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            if (StringHelper.isNullOrEmpty(config.pkg_extra)) {
-                openSetting(null);
-                return;
-            }
-            
-            IFileHandler<BufferedImage> handler = new BufferedImageHandler();
-            IPackage target = new FilePackage(config.pkg_extra);
-            
-            List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());//listAll(selected, tree);
-            for (Leaf<QqtFile> file : list) {
-                try {
-                    String path = file.path;
-                    String ext = path.substring(path.length() - 3);
-                    String parent = path.substring(0, path.length() - 4);
-                    switch (ext) {
-                        case "img": {
-                            QqtImg gsFile = vfs.load(file.path, QqtImg.class);
-                            int i = 0;
-                            for (QqtImgItem item : gsFile.items) {
-                                String fullPath = String.format("image/%s/%s.png", parent, (i++));
-                                target.save(fullPath, QqtImgHelper.toImage(item), handler);
+        if (selected == null) {
+            return;
+        }
+        
+        IPackage target = null;
+        Node<QqtFile> node = selected.getValue();
+        
+        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue(), true);
+        for (Leaf<QqtFile> leaf : list) {
+            try {
+                if (target == null) {
+                    String pkgName = leaf.pack.replace(".idx", "");
+                    target = new FilePackage(config.export_image_path + "/" + pkgName);
+                    target.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+                }
+                
+                if (leaf.path.contains(".img")) {
+                    QqtImg img = vfs.load(leaf.path, QqtImg.class);
+                    if (img != null) {
+                        for (QqtImgItem item : img.items) {
+                            if (item != null) {
+                                String fullPath = leaf.path.replace(".img", String.format("-%02d.png", item.index));
+                                target.save(fullPath, QqtImgHelper.toImage(item));
                             }
-                            break;
                         }
                     }
-                } catch (Exception e) {
-                    LogHelper.error(null, e);
                 }
+            } catch (Exception e) {
+                LogHelper.info(String.format("export image failed: %s", leaf.name), e);
             }
         }
     }
@@ -480,31 +469,6 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                     .setContents(selection, selection);
             }
         }
-    }
-    
-    @FXML
-    protected void removeNode(ActionEvent event) {
-        for (TreeItem<Node<QqtFile>> selected : tree_view.getSelectionModel().getSelectedItems()) {
-            if (selected.equals(tempRoot) || selected.equals(filterRoot)) {
-                continue;
-            }
-            TreeItem<Node<QqtFile>> parent = selected.getParent();
-            parent.getChildren().remove(selected);
-        }
-    }
-    
-    private TreeItem<Node<QqtFile>> tempRoot;
-    
-    @FXML
-    protected void addToTemp(ActionEvent event) {
-        if (tempRoot == null) {
-            tempRoot = new TreeItem<>(new Node<>(0, "[Temp]"));
-            dummyTreeItem.getChildren().add(tempRoot);
-        }
-        
-        TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
-        tempRoot.getChildren().add(new TreeItem<>(selected.getValue()));
-        tempRoot.getChildren().sort(comparator);
     }
     
     private TreeItem<Node<QqtFile>> filterRoot;
@@ -535,17 +499,5 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
         
         filterRoot.getChildren().sort(comparator);
-    }
-    
-    protected void showLoading(int index, long total, String msg) {
-        Platform.runLater(() -> {
-            if (index != total) {
-                progress_bar.setProgress(index * 1d / total);
-                tips.setText(String.format("Loading: (%s/%s)\t%s", index, total, msg));
-            } else {
-                progress_bar.setProgress(0);
-                tips.setText("Loading completed!!!");
-            }
-        });
     }
 }
