@@ -27,6 +27,7 @@ import cn.kizzzy.toolkit.view.AbstractView;
 import cn.kizzzy.vfs.IFileHandler;
 import cn.kizzzy.vfs.IPackage;
 import cn.kizzzy.vfs.ITree;
+import cn.kizzzy.vfs.Separator;
 import cn.kizzzy.vfs.handler.BufferedImageHandler;
 import cn.kizzzy.vfs.handler.BytesFileHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
@@ -36,10 +37,11 @@ import cn.kizzzy.vfs.handler.QqtImgHandler;
 import cn.kizzzy.vfs.pack.FilePackage;
 import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
+import cn.kizzzy.vfs.tree.IdGenerator;
 import cn.kizzzy.vfs.tree.Leaf;
 import cn.kizzzy.vfs.tree.LocalTree;
 import cn.kizzzy.vfs.tree.Node;
-import cn.kizzzy.vfs.tree.QqtTreeHelper;
+import cn.kizzzy.vfs.tree.QqtTreeBuilder;
 import cn.kizzzy.vfs.tree.Root;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -64,7 +66,6 @@ import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -219,10 +220,9 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
                 iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
                 
-                QqtIdx pkg = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
-                
-                Root<QqtFile> root = QqtTreeHelper.ToPack(pkg);
-                tree = new LocalTree<>(root);
+                QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
+                Root<QqtFile> root = new QqtTreeBuilder(idx, new IdGenerator()).build();
+                tree = new LocalTree<>(root, Separator.BACKSLASH_SEPARATOR_LOWERCASE);
                 
                 vfs = new QqtPackage(file.getParent(), tree);
                 
@@ -252,13 +252,12 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
             }
             
             new Thread(() -> {
+                Root<QqtFile> root = new FileTreeBuilder<QqtFile>(file.getAbsolutePath(), new IdGenerator()).build();
+                tree = new LocalTree<>(root, Separator.BACKSLASH_SEPARATOR_LOWERCASE);
+                
                 vfs = new FilePackage(file.getAbsolutePath());
                 vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
                 vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-                
-                Root<QqtFile> root = new FileTreeBuilder<QqtFile>()
-                    .build(file);
-                tree = new LocalTree<>(root);
                 
                 Platform.runLater(() -> {
                     dummyTreeItem.getChildren().clear();
@@ -279,7 +278,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @Override
     public QqtFile retrievePkgSubFile(String path) {
-        Leaf<QqtFile> leaf = tree.getFile(path);
+        Leaf<QqtFile> leaf = tree.getLeaf(path);
         return leaf != null ? leaf.item : null;
     }
     
@@ -295,8 +294,9 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         if (newValue != null) {
             Node<QqtFile> folder = newValue.getValue();
             Leaf<QqtFile> thumbs = null;
-            if (folder.IsLeaf()) {
-                thumbs = folder.thumbs;
+            
+            if (folder.leaf) {
+                thumbs = (Leaf<QqtFile>) folder;
             } else {
                 newValue.getChildren().clear();
                 
@@ -304,13 +304,10 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 for (Node<QqtFile> temp : list) {
                     TreeItem<Node<QqtFile>> child = new TreeItem<>(temp);
                     newValue.getChildren().add(child);
-                    
-                    if (thumbs == null && temp.IsLeaf()) {
-                        thumbs = temp.thumbs;
-                    }
                 }
                 newValue.getChildren().sort(comparator);
             }
+            
             if (thumbs != null) {
                 if (display != null) {
                     display.stop();
@@ -377,7 +374,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
             
             List<Display> displays = new ArrayList<>();
             
-            List<Leaf<QqtFile>> fileList = tree.getFileByFolder(selected.getValue());
+            List<Leaf<QqtFile>> fileList = tree.listLeaf(selected.getValue());
             for (Leaf<QqtFile> file : fileList) {
                 displays.add(DisplayHelper.newDisplay(this, file.path));
             }
@@ -392,27 +389,6 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
     }
     
-    private List<Leaf<QqtFile>> listAll(TreeItem<Node<QqtFile>> root, ITree<QqtFile> pkgSource) {
-        List<Leaf<QqtFile>> list = new LinkedList<>();
-        listAll(list, root, pkgSource);
-        return list;
-    }
-    
-    private void listAll(List<Leaf<QqtFile>> list, TreeItem<Node<QqtFile>> root, ITree<QqtFile> pkgSource) {
-        Node<QqtFile> folder = root.getValue();
-        if (folder.parent == null) {
-            if (folder.IsLeaf()) {
-                list.add(folder.thumbs);
-            } else {
-                for (TreeItem<Node<QqtFile>> child : root.getChildren()) {
-                    listAll(list, child, pkgSource);
-                }
-            }
-        } else {
-            list.addAll(pkgSource.getFileByFolder(folder));
-        }
-    }
-    
     @FXML
     protected void newPackage(ActionEvent event) {
         final TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
@@ -422,7 +398,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 return;
             }
             
-            List<Leaf<QqtFile>> list = tree.getFileByFolder(selected.getValue());
+            List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
             String file = String.format("%s/pkg/%s.pkg", config.pkg_extra, System.currentTimeMillis());
             // todo PkgHelper.savePackage(list, file);
         }
@@ -441,7 +417,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 IFileHandler<byte[]> handler = new BytesFileHandler();
                 IPackage target = new FilePackage(config.pkg_extra);
                 
-                List<Leaf<QqtFile>> list = listAll(selected, tree);
+                List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());// listAll(selected, tree);
                 for (Leaf<QqtFile> file : list) {
                     try {
                         target.save("file/" + file.path, (byte[]) vfs.load(file.path, handler), handler);
@@ -467,7 +443,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
             IFileHandler<BufferedImage> handler = new BufferedImageHandler();
             IPackage target = new FilePackage(config.pkg_extra);
             
-            List<Leaf<QqtFile>> list = listAll(selected, tree);
+            List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());//listAll(selected, tree);
             for (Leaf<QqtFile> file : list) {
                 try {
                     String path = file.path;
@@ -494,9 +470,11 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     protected void copyPath(ActionEvent actionEvent) {
         TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            Node<QqtFile> folder = selected.getValue();
-            if (folder.IsLeaf()) {
-                String path = folder.thumbs.path.replace("\\", "\\\\");
+            Node<QqtFile> node = selected.getValue();
+            if (node.leaf) {
+                Leaf<QqtFile> leaf = (Leaf<QqtFile>) node;
+                
+                String path = leaf.path.replace("\\", "\\\\");
                 StringSelection selection = new StringSelection(path);
                 java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
                     .setContents(selection, selection);
@@ -520,7 +498,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     @FXML
     protected void addToTemp(ActionEvent event) {
         if (tempRoot == null) {
-            tempRoot = new TreeItem<>(new Node<QqtFile>("[Temp]", null, null));
+            tempRoot = new TreeItem<>(new Node<>(0, "[Temp]"));
             dummyTreeItem.getChildren().add(tempRoot);
         }
         
@@ -545,13 +523,13 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
         
         if (filterRoot == null) {
-            filterRoot = new TreeItem<>(new Node<>("[Filter]", null, null));
+            filterRoot = new TreeItem<>(new Node<>(0, "[Filter]"));
             dummyTreeItem.getChildren().add(filterRoot);
         }
         
         filterRoot.getChildren().clear();
         
-        List<Node<QqtFile>> list = tree.getFolderByRegex(regex);
+        List<Node<QqtFile>> list = tree.listNodeByRegex(regex);
         for (Node<QqtFile> folder : list) {
             filterRoot.getChildren().add(new TreeItem<>(folder));
         }

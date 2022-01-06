@@ -12,14 +12,14 @@ public class TreeItemComparator implements Comparator<TreeItem<Node<QqtFile>>> {
     public int compare(TreeItem<Node<QqtFile>> o1, TreeItem<Node<QqtFile>> o2) {
         Node<QqtFile> folder1 = o1.getValue();
         Node<QqtFile> folder2 = o2.getValue();
-        if (folder1.IsLeaf()) {
-            if (folder2.IsLeaf()) {
+        if (folder1.leaf) {
+            if (folder2.leaf) {
                 return compareImpl(folder1.name, folder2.name);
             } else {
                 return 1;
             }
         } else {
-            if (folder2.IsLeaf()) {
+            if (folder2.leaf) {
                 return -1;
             } else {
                 return compareImpl(folder1.name, folder2.name);
