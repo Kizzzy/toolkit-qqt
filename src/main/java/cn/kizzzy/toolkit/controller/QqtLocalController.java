@@ -26,7 +26,6 @@ import cn.kizzzy.toolkit.extrator.PlayThisTask;
 import cn.kizzzy.toolkit.view.AbstractView;
 import cn.kizzzy.vfs.IPackage;
 import cn.kizzzy.vfs.ITree;
-import cn.kizzzy.vfs.Separator;
 import cn.kizzzy.vfs.handler.BufferedImageHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
@@ -37,10 +36,8 @@ import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
 import cn.kizzzy.vfs.tree.IdGenerator;
 import cn.kizzzy.vfs.tree.Leaf;
-import cn.kizzzy.vfs.tree.LocalTree;
 import cn.kizzzy.vfs.tree.Node;
 import cn.kizzzy.vfs.tree.QqtTreeBuilder;
-import cn.kizzzy.vfs.tree.Root;
 import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.event.ActionEvent;
@@ -216,14 +213,17 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
                 
                 QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
-                Root<QqtFile> root = new QqtTreeBuilder(idx, new IdGenerator()).build();
-                tree = new LocalTree<>(root, Separator.BACKSLASH_SEPARATOR_LOWERCASE);
+                tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
                 
                 vfs = new QqtPackage(file.getParent(), tree);
                 
                 Platform.runLater(() -> {
                     dummyTreeItem.getChildren().clear();
-                    dummyTreeItem.getChildren().add(new TreeItem<>(root));
+                    
+                    final List<Node<QqtFile>> nodes = tree.listNode(0);
+                    for (Node<QqtFile> node : nodes) {
+                        dummyTreeItem.getChildren().add(new TreeItem<>(node));
+                    }
                 });
                 
                 loadedKvs.put(file.getAbsolutePath(), file);
@@ -247,8 +247,9 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
             }
             
             new Thread(() -> {
-                Root<QqtFile> root = new FileTreeBuilder<QqtFile>(file.getAbsolutePath(), new IdGenerator()).build();
-                tree = new LocalTree<>(root, Separator.BACKSLASH_SEPARATOR_LOWERCASE);
+                tree = new FileTreeBuilder<QqtFile>(
+                    file.getAbsolutePath(), new IdGenerator()
+                ).build();
                 
                 vfs = new FilePackage(file.getAbsolutePath());
                 vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
@@ -256,7 +257,11 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 
                 Platform.runLater(() -> {
                     dummyTreeItem.getChildren().clear();
-                    dummyTreeItem.getChildren().add(new TreeItem<>(root));
+                    
+                    final List<Node<QqtFile>> nodes = tree.listNode(0);
+                    for (Node<QqtFile> node : nodes) {
+                        dummyTreeItem.getChildren().add(new TreeItem<>(node));
+                    }
                 });
                 
                 loadedKvs.put(file.getAbsolutePath(), file);
