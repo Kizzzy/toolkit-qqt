@@ -4,8 +4,8 @@ import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.javafx.display.DisplayParam;
 import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.qqt.QqtImg;
-import cn.kizzzy.qqt.QqtImgHelper;
 import cn.kizzzy.qqt.QqtImgItem;
+import cn.kizzzy.qqt.helper.QqtImgHelper;
 
 import java.awt.image.BufferedImage;
 import java.util.Collections;
