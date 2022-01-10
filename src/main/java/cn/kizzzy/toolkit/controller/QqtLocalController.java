@@ -1,8 +1,5 @@
 package cn.kizzzy.toolkit.controller;
 
-import cn.kizzzy.qqt.display.Display;
-import cn.kizzzy.qqt.display.DisplayContext;
-import cn.kizzzy.qqt.display.DisplayHelper;
 import cn.kizzzy.event.EventArgs;
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
@@ -21,6 +18,9 @@ import cn.kizzzy.qqt.QqtIdx;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
+import cn.kizzzy.qqt.display.Display;
+import cn.kizzzy.qqt.display.DisplayContext;
+import cn.kizzzy.qqt.display.DisplayHelper;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.toolkit.extrator.PlayThisTask;
 import cn.kizzzy.toolkit.view.AbstractView;
@@ -57,12 +57,9 @@ import javafx.stage.FileChooser;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
@@ -113,7 +110,6 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     protected IPackage vfs;
     protected ITree<QqtFile> tree;
-    protected Map<String, File> loadedKvs = new HashMap<>();
     
     protected Display display = new Display();
     protected TreeItem<Node<QqtFile>> dummyTreeItem;
@@ -202,33 +198,34 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         if (file != null && file.getAbsolutePath().endsWith(".idx")) {
             config.data_path = file.getParent();
             
-            if (loadedKvs.containsKey(file.getAbsolutePath())) {
-                LogHelper.info("idx is loaded");
-                return;
-            }
-            
             new Thread(() -> {
-                IPackage iPackage = new FilePackage(file.getParent());
-                iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
-                iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-                
-                QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
-                tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
-                
-                vfs = new QqtPackage(file.getParent(), tree);
-                
-                Platform.runLater(() -> {
-                    dummyTreeItem.getChildren().clear();
-                    
-                    final List<Node<QqtFile>> nodes = tree.listNode(0);
-                    for (Node<QqtFile> node : nodes) {
-                        dummyTreeItem.getChildren().add(new TreeItem<>(node));
-                    }
-                });
-                
-                loadedKvs.put(file.getAbsolutePath(), file);
+                try {
+                    loadIdxImpl(file);
+                } catch (Exception e) {
+                    LogHelper.error("load ids error", e);
+                }
             }).start();
         }
+    }
+    
+    private void loadIdxImpl(File file) {
+        IPackage iPackage = new FilePackage(file.getParent());
+        iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
+        iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        
+        QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
+        tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
+        
+        vfs = new QqtPackage(file.getParent(), tree);
+        
+        Platform.runLater(() -> {
+            dummyTreeItem.getChildren().clear();
+            
+            final List<Node<QqtFile>> nodes = tree.listNode(0);
+            for (Node<QqtFile> node : nodes) {
+                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+            }
+        });
     }
     
     private void loadFolder(ActionEvent actionEvent) {
@@ -241,39 +238,33 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         if (file != null) {
             config.qqt_path = file.getAbsolutePath();
             
-            if (loadedKvs.containsKey(file.getAbsolutePath())) {
-                LogHelper.info("folder is loaded");
-                return;
-            }
-            
             new Thread(() -> {
-                tree = new FileTreeBuilder<QqtFile>(
-                    file.getAbsolutePath(), new IdGenerator()
-                ).build();
-                
-                vfs = new FilePackage(file.getAbsolutePath());
-                vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
-                vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-                
-                Platform.runLater(() -> {
-                    dummyTreeItem.getChildren().clear();
-                    
-                    final List<Node<QqtFile>> nodes = tree.listNode(0);
-                    for (Node<QqtFile> node : nodes) {
-                        dummyTreeItem.getChildren().add(new TreeItem<>(node));
-                    }
-                });
-                
-                loadedKvs.put(file.getAbsolutePath(), file);
+                try {
+                    loadFolderImpl(file);
+                } catch (Exception e) {
+                    LogHelper.error("load folder error", e);
+                }
             }).start();
         }
     }
     
-    protected Object leaf2file(String path, Type clazz) {
-        if (vfs != null) {
-            return vfs.load(path, clazz);
-        }
-        return null;
+    private void loadFolderImpl(File file) {
+        tree = new FileTreeBuilder<QqtFile>(
+            file.getAbsolutePath(), new IdGenerator()
+        ).build();
+        
+        vfs = new FilePackage(file.getAbsolutePath());
+        vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
+        vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        
+        Platform.runLater(() -> {
+            dummyTreeItem.getChildren().clear();
+            
+            final List<Node<QqtFile>> nodes = tree.listNode(0);
+            for (Node<QqtFile> node : nodes) {
+                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+            }
+        });
     }
     
     @Override
