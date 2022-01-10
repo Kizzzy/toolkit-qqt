@@ -45,7 +45,7 @@ public class ImgDisplay extends Display {
                 item.file.count,
                 item.width,
                 item.height,
-                retrieveImageType(item.type)
+                retrieveImageType(item.file.major)
             );
             
             BufferedImage image = QqtImgHelper.toImage(item);

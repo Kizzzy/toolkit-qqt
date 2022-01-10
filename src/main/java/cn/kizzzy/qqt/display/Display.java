@@ -58,10 +58,9 @@ public class Display {
     
     protected String retrieveImageType(int type) {
         switch (type) {
-            case 3:
-            case 123456:
+            case 0:
                 return "ARGB0565";
-            case 8:
+            case 1:
                 return "ARGB8888";
             default:
                 return "Unknown";
