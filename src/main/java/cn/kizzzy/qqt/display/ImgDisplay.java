@@ -49,15 +49,17 @@ public class ImgDisplay extends Display {
             );
             
             BufferedImage image = QqtImgHelper.toImage(item);
-            wrapperImage(image);
-            
-            params[i] = new DisplayParam.Builder()
-                .setX(getLayoutX(item))
-                .setY(getLayoutY(item))
-                .setWidth(item.width)
-                .setHeight(item.height)
-                .setImage(image)
-                .build();
+            if (image != null) {
+                wrapperImage(image);
+                
+                params[i] = new DisplayParam.Builder()
+                    .setX(getLayoutX(item))
+                    .setY(getLayoutY(item))
+                    .setWidth(item.width)
+                    .setHeight(item.height)
+                    .setImage(image)
+                    .build();
+            }
         }
         
         displayImpl();
@@ -91,7 +93,9 @@ public class ImgDisplay extends Display {
     protected void displayImpl() {
         try {
             context.notifyListener(DisplayType.TOAST_TIPS, infos[index]);
-            context.notifyListener(DisplayType.SHOW_IMAGE, Collections.singletonList(params[index]));
+            if (params[index] != null) {
+                context.notifyListener(DisplayType.SHOW_IMAGE, Collections.singletonList(params[index]));
+            }
         } catch (Exception e) {
             LogHelper.error(null, e);
         }

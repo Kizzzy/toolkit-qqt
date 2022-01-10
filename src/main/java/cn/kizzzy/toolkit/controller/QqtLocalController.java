@@ -124,7 +124,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         
         JavafxHelper.initContextMenu(tree_view, () -> stage.getScene().getWindow(), new MenuItemArg[]{
             new MenuItemArg(0, "设置", this::openSetting),
-            new MenuItemArg(1, "加载Idx", this::loadPackage),
+            new MenuItemArg(1, "加载Idx", this::loadIdx),
             new MenuItemArg(1, "加载目录", this::loadFolder),
             new MenuItemArg(2, "导出/文件", this::exportFile),
             new MenuItemArg(2, "导出/图片", this::exportImage),
@@ -185,11 +185,14 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         });
     }
     
-    protected void loadPackage(ActionEvent actionEvent) {
+    protected void loadIdx(ActionEvent actionEvent) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("选择idx文件");
         if (StringHelper.isNotNullAndEmpty(config.data_path)) {
-            chooser.setInitialDirectory(new File(config.data_path));
+            File lastFolder = new File(config.data_path);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
         }
         chooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("IDX", "*.idx")
@@ -231,8 +234,12 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     private void loadFolder(ActionEvent actionEvent) {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("选择QQ堂根目录");
+        
         if (StringHelper.isNotNullAndEmpty(config.qqt_path)) {
-            chooser.setInitialDirectory(new File(config.qqt_path));
+            File lastFolder = new File(config.qqt_path);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
         }
         File file = chooser.showDialog(stage);
         if (file != null) {
