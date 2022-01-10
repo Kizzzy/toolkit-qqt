@@ -1,8 +1,8 @@
 package cn.kizzzy.toolkit.controller;
 
-import cn.kizzzy.display.Display;
-import cn.kizzzy.display.DisplayContext;
-import cn.kizzzy.display.DisplayHelper;
+import cn.kizzzy.qqt.display.Display;
+import cn.kizzzy.qqt.display.DisplayContext;
+import cn.kizzzy.qqt.display.DisplayHelper;
 import cn.kizzzy.event.EventArgs;
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;

@@ -1,4 +1,4 @@
-package cn.kizzzy.display;
+package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.event.IEventSource;
 import cn.kizzzy.qqt.QqtFile;

@@ -1,4 +1,4 @@
-package cn.kizzzy.display;
+package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.clazz.ClassFilter;
 import cn.kizzzy.clazz.ClassFinderHelper;
@@ -19,7 +19,7 @@ public class DisplayHelper {
             List<Class<?>> list = ClassFinderHelper.find(new ClassFilter() {
                 @Override
                 public String packageRoot() {
-                    return "cn.kizzzy.display";
+                    return "cn.kizzzy.qqt.display";
                 }
                 
                 @Override

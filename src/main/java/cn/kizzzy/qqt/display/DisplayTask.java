@@ -1,4 +1,4 @@
-package cn.kizzzy.display;
+package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.helper.LogHelper;
 import javafx.application.Platform;

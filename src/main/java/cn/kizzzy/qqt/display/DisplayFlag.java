@@ -1,4 +1,4 @@
-package cn.kizzzy.display;
+package cn.kizzzy.qqt.display;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

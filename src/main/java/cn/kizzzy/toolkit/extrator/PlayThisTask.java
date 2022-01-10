@@ -1,7 +1,7 @@
 package cn.kizzzy.toolkit.extrator;
 
 import cn.kizzzy.helper.LogHelper;
-import cn.kizzzy.display.Display;
+import cn.kizzzy.qqt.display.Display;
 
 import java.util.List;
 
