@@ -205,7 +205,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
                 try {
                     loadIdxImpl(file);
                 } catch (Exception e) {
-                    LogHelper.error("load ids error", e);
+                    LogHelper.error("load idx error", e);
                 }
             }).start();
         }
@@ -389,20 +389,24 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @FXML
     protected void exportFile(ActionEvent event) {
-        if (StringHelper.isNullOrEmpty(config.export_file_path)) {
-            openSetting(null);
-            return;
-        }
-        
         TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
         }
         
-        IPackage target = null;
-        Node<QqtFile> node = selected.getValue();
+        if (StringHelper.isNullOrEmpty(config.export_file_path) || !new File(config.export_file_path).exists()) {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("选择保存文件的文件夹");
+            File file = chooser.showDialog(stage);
+            if (file == null) {
+                return;
+            }
+            config.export_file_path = file.getAbsolutePath();
+        }
         
-        List<Leaf<QqtFile>> list = tree.listLeaf(node, true);
+        IPackage target = null;
+        
+        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
         for (Leaf<QqtFile> leaf : list) {
             try {
                 if (target == null) {
@@ -420,20 +424,25 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @FXML
     protected void exportImage(ActionEvent event) {
-        if (StringHelper.isNullOrEmpty(config.export_image_path)) {
-            openSetting(null);
-            return;
-        }
-        
         final TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
         }
         
+        if (StringHelper.isNullOrEmpty(config.export_image_path) || !new File(config.export_image_path).exists()) {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("选择保存图片的文件夹");
+            File file = chooser.showDialog(stage);
+            if (file == null) {
+                return;
+            }
+            config.export_image_path = file.getAbsolutePath();
+        }
+        
         IPackage target = null;
         Node<QqtFile> node = selected.getValue();
         
-        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue(), true);
+        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
         for (Leaf<QqtFile> leaf : list) {
             try {
                 if (target == null) {
