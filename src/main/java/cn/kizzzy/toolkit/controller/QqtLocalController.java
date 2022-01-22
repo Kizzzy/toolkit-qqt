@@ -78,7 +78,7 @@ abstract class QqtViewBase extends AbstractView {
     protected CheckBox lock_tab;
     
     @FXML
-    protected TreeView<Node<QqtFile>> tree_view;
+    protected TreeView<Node> tree_view;
     
     @FXML
     protected DisplayTabView display_tab;
@@ -109,10 +109,10 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     protected ISettingDialogFactory dialogFactory;
     
     protected IPackage vfs;
-    protected ITree<QqtFile> tree;
+    protected ITree tree;
     
     protected Display display = new Display();
-    protected TreeItem<Node<QqtFile>> dummyTreeItem;
+    protected TreeItem<Node> dummyTreeItem;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -224,8 +224,8 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         Platform.runLater(() -> {
             dummyTreeItem.getChildren().clear();
             
-            final List<Node<QqtFile>> nodes = tree.listNode(0);
-            for (Node<QqtFile> node : nodes) {
+            final List<Node> nodes = tree.listNode(0);
+            for (Node node : nodes) {
                 dummyTreeItem.getChildren().add(new TreeItem<>(node));
             }
         });
@@ -256,7 +256,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     }
     
     private void loadFolderImpl(File file) {
-        tree = new FileTreeBuilder<QqtFile>(
+        tree = new FileTreeBuilder(
             file.getAbsolutePath(), new IdGenerator()
         ).build();
         
@@ -267,8 +267,8 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         Platform.runLater(() -> {
             dummyTreeItem.getChildren().clear();
             
-            final List<Node<QqtFile>> nodes = tree.listNode(0);
-            for (Node<QqtFile> node : nodes) {
+            final List<Node> nodes = tree.listNode(0);
+            for (Node node : nodes) {
                 dummyTreeItem.getChildren().add(new TreeItem<>(node));
             }
         });
@@ -276,8 +276,8 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @Override
     public QqtFile retrievePkgSubFile(String path) {
-        Leaf<QqtFile> leaf = tree.getLeaf(path);
-        return leaf != null ? leaf.item : null;
+        Leaf leaf = tree.getLeaf(path);
+        return leaf != null ? (QqtFile) leaf.item : null;
     }
     
     @Override
@@ -288,19 +288,19 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         return null;
     }
     
-    protected void onSelectItem(Observable observable, TreeItem<Node<QqtFile>> oldValue, TreeItem<Node<QqtFile>> newValue) {
+    protected void onSelectItem(Observable observable, TreeItem<Node> oldValue, TreeItem<Node> newValue) {
         if (newValue != null) {
-            Node<QqtFile> folder = newValue.getValue();
-            Leaf<QqtFile> thumbs = null;
+            Node folder = newValue.getValue();
+            Leaf thumbs = null;
             
             if (folder.leaf) {
-                thumbs = (Leaf<QqtFile>) folder;
+                thumbs = (Leaf) folder;
             } else {
                 newValue.getChildren().clear();
                 
-                Iterable<Node<QqtFile>> list = folder.children.values();
-                for (Node<QqtFile> temp : list) {
-                    TreeItem<Node<QqtFile>> child = new TreeItem<>(temp);
+                Iterable<Node> list = folder.children.values();
+                for (Node temp : list) {
+                    TreeItem<Node> child = new TreeItem<>(temp);
                     newValue.getChildren().add(child);
                 }
                 newValue.getChildren().sort(comparator);
@@ -368,12 +368,12 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         playThis = !playThis;
         ((Button) event.getSource()).setText(playThis ? "暂停播放" : "连续播放");
         if (playThis) {
-            TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
+            TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
             
             List<Display> displays = new ArrayList<>();
             
-            List<Leaf<QqtFile>> fileList = tree.listLeaf(selected.getValue());
-            for (Leaf<QqtFile> file : fileList) {
+            List<Leaf> fileList = tree.listLeaf(selected.getValue());
+            for (Leaf file : fileList) {
                 displays.add(DisplayHelper.newDisplay(this, file.path));
             }
             
@@ -389,7 +389,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @FXML
     protected void exportFile(ActionEvent event) {
-        TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
+        TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
         }
@@ -406,8 +406,8 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         
         IPackage target = null;
         
-        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
-        for (Leaf<QqtFile> leaf : list) {
+        List<Leaf> list = tree.listLeaf(selected.getValue());
+        for (Leaf leaf : list) {
             try {
                 if (target == null) {
                     String pkgName = leaf.pack.replace(".idx", "");
@@ -424,7 +424,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     @FXML
     protected void exportImage(ActionEvent event) {
-        final TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
+        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
         }
@@ -440,10 +440,10 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
         
         IPackage target = null;
-        Node<QqtFile> node = selected.getValue();
+        Node node = selected.getValue();
         
-        List<Leaf<QqtFile>> list = tree.listLeaf(selected.getValue());
-        for (Leaf<QqtFile> leaf : list) {
+        List<Leaf> list = tree.listLeaf(selected.getValue());
+        for (Leaf leaf : list) {
             try {
                 if (target == null) {
                     String pkgName = leaf.pack.replace(".idx", "");
@@ -469,11 +469,11 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     }
     
     protected void copyPath(ActionEvent actionEvent) {
-        TreeItem<Node<QqtFile>> selected = tree_view.getSelectionModel().getSelectedItem();
+        TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            Node<QqtFile> node = selected.getValue();
+            Node node = selected.getValue();
             if (node.leaf) {
-                Leaf<QqtFile> leaf = (Leaf<QqtFile>) node;
+                Leaf leaf = (Leaf) node;
                 
                 String path = leaf.path.replace("\\", "\\\\");
                 StringSelection selection = new StringSelection(path);
@@ -483,7 +483,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
     }
     
-    private TreeItem<Node<QqtFile>> filterRoot;
+    private TreeItem<Node> filterRoot;
     
     @FXML
     protected void onFilter(ActionEvent event) {
@@ -499,14 +499,14 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
         
         if (filterRoot == null) {
-            filterRoot = new TreeItem<>(new Node<>(0, "[Filter]"));
+            filterRoot = new TreeItem<>(new Node(0, "[Filter]"));
             dummyTreeItem.getChildren().add(filterRoot);
         }
         
         filterRoot.getChildren().clear();
         
-        List<Node<QqtFile>> list = tree.listNodeByRegex(regex);
-        for (Node<QqtFile> folder : list) {
+        List<Node> list = tree.listNodeByRegex(regex);
+        for (Node folder : list) {
             filterRoot.getChildren().add(new TreeItem<>(folder));
         }
         

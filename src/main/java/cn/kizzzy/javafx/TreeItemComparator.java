@@ -1,17 +1,16 @@
 package cn.kizzzy.javafx;
 
-import cn.kizzzy.qqt.QqtFile;
 import cn.kizzzy.vfs.tree.Node;
 import javafx.scene.control.TreeItem;
 
 import java.util.Comparator;
 
-public class TreeItemComparator implements Comparator<TreeItem<Node<QqtFile>>> {
+public class TreeItemComparator implements Comparator<TreeItem<Node>> {
     
     @Override
-    public int compare(TreeItem<Node<QqtFile>> o1, TreeItem<Node<QqtFile>> o2) {
-        Node<QqtFile> folder1 = o1.getValue();
-        Node<QqtFile> folder2 = o2.getValue();
+    public int compare(TreeItem<Node> o1, TreeItem<Node> o2) {
+        Node folder1 = o1.getValue();
+        Node folder2 = o2.getValue();
         if (folder1.leaf) {
             if (folder2.leaf) {
                 return compareImpl(folder1.name, folder2.name);
