@@ -13,7 +13,6 @@ import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.javafx.setting.ISettingDialogFactory;
 import cn.kizzzy.javafx.setting.SettingDialogFactory;
 import cn.kizzzy.qqt.QqtConfig;
-import cn.kizzzy.qqt.QqtIdx;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
@@ -21,23 +20,24 @@ import cn.kizzzy.qqt.display.Display;
 import cn.kizzzy.qqt.display.DisplayContext;
 import cn.kizzzy.qqt.display.DisplayHelper;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
+import cn.kizzzy.tencent.IdxFile;
 import cn.kizzzy.toolkit.extrator.PlayThisTask;
 import cn.kizzzy.toolkit.view.AbstractView;
 import cn.kizzzy.vfs.IPackage;
 import cn.kizzzy.vfs.ITree;
 import cn.kizzzy.vfs.handler.BufferedImageHandler;
+import cn.kizzzy.vfs.handler.IdxFileHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
-import cn.kizzzy.vfs.handler.QqtIdxFileHandler;
 import cn.kizzzy.vfs.handler.QqtImgHandler;
 import cn.kizzzy.vfs.handler.StringFileHandler;
 import cn.kizzzy.vfs.pack.FilePackage;
 import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
 import cn.kizzzy.vfs.tree.IdGenerator;
+import cn.kizzzy.vfs.tree.IdxTreeBuilder;
 import cn.kizzzy.vfs.tree.Leaf;
 import cn.kizzzy.vfs.tree.Node;
-import cn.kizzzy.vfs.tree.QqtTreeBuilder;
 import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.event.ActionEvent;
@@ -326,11 +326,11 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     private void loadIdxImpl(File file) {
         IPackage iPackage = new FilePackage(file.getParent());
-        iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
+        iPackage.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
         
-        QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
-        tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
+        IdxFile idxFile = iPackage.load(FileHelper.getName(file.getAbsolutePath()), IdxFile.class);
+        tree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
         
         vfs = new QqtPackage(file.getParent(), tree);
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
