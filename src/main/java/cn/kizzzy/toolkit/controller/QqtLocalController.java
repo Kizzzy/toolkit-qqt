@@ -13,7 +13,6 @@ import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.javafx.setting.ISettingDialogFactory;
 import cn.kizzzy.javafx.setting.SettingDialogFactory;
 import cn.kizzzy.qqt.QqtConfig;
-import cn.kizzzy.qqt.QqtFile;
 import cn.kizzzy.qqt.QqtIdx;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
@@ -31,6 +30,7 @@ import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
 import cn.kizzzy.vfs.handler.QqtIdxFileHandler;
 import cn.kizzzy.vfs.handler.QqtImgHandler;
+import cn.kizzzy.vfs.handler.StringFileHandler;
 import cn.kizzzy.vfs.pack.FilePackage;
 import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
@@ -54,10 +54,12 @@ import javafx.scene.control.TreeView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
+import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -124,11 +126,16 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         
         JavafxHelper.initContextMenu(tree_view, () -> stage.getScene().getWindow(), new MenuItemArg[]{
             new MenuItemArg(0, "设置", this::openSetting),
-            new MenuItemArg(1, "加载Idx", this::loadIdx),
-            new MenuItemArg(1, "加载目录", this::loadFolder),
-            new MenuItemArg(2, "导出/文件", this::exportFile),
-            new MenuItemArg(2, "导出/图片", this::exportImage),
-            new MenuItemArg(3, "复制路径", this::copyPath),
+            new MenuItemArg(1, "加载/Idx", this::loadIdx),
+            new MenuItemArg(1, "加载/目录", this::loadFolder),
+            new MenuItemArg(2, "打开/QQ堂", this::openFolderQqtRoot),
+            new MenuItemArg(2, "打开/文件路径", this::openFolderExportFile),
+            new MenuItemArg(2, "打开/图片路径", this::openFolderExportImage),
+            new MenuItemArg(3, "导出/文件", event -> exportFile(false)),
+            new MenuItemArg(3, "导出/文件(递归)", event -> exportFile(true)),
+            new MenuItemArg(3, "导出/图片", event -> exportImage(false)),
+            new MenuItemArg(3, "导出/图片(递归)", event -> exportImage(true)),
+            new MenuItemArg(4, "复制路径", this::copyPath),
         });
         
         addListener(DisplayType.TOAST_TIPS, this::toastTips);
@@ -185,101 +192,6 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         });
     }
     
-    protected void loadIdx(ActionEvent actionEvent) {
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("选择idx文件");
-        if (StringHelper.isNotNullAndEmpty(config.data_path)) {
-            File lastFolder = new File(config.data_path);
-            if (lastFolder.exists()) {
-                chooser.setInitialDirectory(lastFolder);
-            }
-        }
-        chooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("IDX", "*.idx")
-        );
-        File file = chooser.showOpenDialog(stage);
-        if (file != null && file.getAbsolutePath().endsWith(".idx")) {
-            config.data_path = file.getParent();
-            
-            new Thread(() -> {
-                try {
-                    loadIdxImpl(file);
-                } catch (Exception e) {
-                    LogHelper.error("load idx error", e);
-                }
-            }).start();
-        }
-    }
-    
-    private void loadIdxImpl(File file) {
-        IPackage iPackage = new FilePackage(file.getParent());
-        iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
-        iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        
-        QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
-        tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
-        
-        vfs = new QqtPackage(file.getParent(), tree);
-        
-        Platform.runLater(() -> {
-            dummyTreeItem.getChildren().clear();
-            
-            final List<Node> nodes = tree.listNode(0);
-            for (Node node : nodes) {
-                dummyTreeItem.getChildren().add(new TreeItem<>(node));
-            }
-        });
-    }
-    
-    private void loadFolder(ActionEvent actionEvent) {
-        DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("选择QQ堂根目录");
-        
-        if (StringHelper.isNotNullAndEmpty(config.qqt_path)) {
-            File lastFolder = new File(config.qqt_path);
-            if (lastFolder.exists()) {
-                chooser.setInitialDirectory(lastFolder);
-            }
-        }
-        File file = chooser.showDialog(stage);
-        if (file != null) {
-            config.qqt_path = file.getAbsolutePath();
-            
-            new Thread(() -> {
-                try {
-                    loadFolderImpl(file);
-                } catch (Exception e) {
-                    LogHelper.error("load folder error", e);
-                }
-            }).start();
-        }
-    }
-    
-    private void loadFolderImpl(File file) {
-        tree = new FileTreeBuilder(
-            file.getAbsolutePath(), new IdGenerator()
-        ).build();
-        
-        vfs = new FilePackage(file.getAbsolutePath());
-        vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
-        vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        
-        Platform.runLater(() -> {
-            dummyTreeItem.getChildren().clear();
-            
-            final List<Node> nodes = tree.listNode(0);
-            for (Node node : nodes) {
-                dummyTreeItem.getChildren().add(new TreeItem<>(node));
-            }
-        });
-    }
-    
-    @Override
-    public QqtFile retrievePkgSubFile(String path) {
-        Leaf leaf = tree.getLeaf(path);
-        return leaf != null ? (QqtFile) leaf.item : null;
-    }
-    
     @Override
     public <T> T load(String path, Class<T> clazz) {
         if (vfs != null) {
@@ -318,14 +230,6 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
     
     protected void onChangeLayer(Observable observable, Number oldValue, Number newValue) {
         display.select(newValue.intValue());
-    }
-    
-    @FXML
-    protected void openSetting(ActionEvent actionEvent) {
-        if (dialogFactory == null) {
-            dialogFactory = new SettingDialogFactory(stage);
-        }
-        dialogFactory.show(config);
     }
     
     @FXML
@@ -387,8 +291,129 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
     }
     
-    @FXML
-    protected void exportFile(ActionEvent event) {
+    private void openSetting(ActionEvent actionEvent) {
+        if (dialogFactory == null) {
+            dialogFactory = new SettingDialogFactory(stage);
+        }
+        dialogFactory.show(config);
+    }
+    
+    private void loadIdx(ActionEvent actionEvent) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("选择idx文件");
+        if (StringHelper.isNotNullAndEmpty(config.data_path)) {
+            File lastFolder = new File(config.data_path);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
+        }
+        chooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("IDX", "*.idx")
+        );
+        File file = chooser.showOpenDialog(stage);
+        if (file != null && file.getAbsolutePath().endsWith(".idx")) {
+            config.data_path = file.getParent();
+            
+            new Thread(() -> {
+                try {
+                    loadIdxImpl(file);
+                } catch (Exception e) {
+                    LogHelper.error("load idx error", e);
+                }
+            }).start();
+        }
+    }
+    
+    private void loadIdxImpl(File file) {
+        IPackage iPackage = new FilePackage(file.getParent());
+        iPackage.getHandlerKvs().put(QqtIdx.class, new QqtIdxFileHandler());
+        iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        
+        QqtIdx idx = iPackage.load(FileHelper.getName(file.getAbsolutePath()), QqtIdx.class);
+        tree = new QqtTreeBuilder(idx, new IdGenerator()).build();
+        
+        vfs = new QqtPackage(file.getParent(), tree);
+        vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        
+        Platform.runLater(() -> {
+            dummyTreeItem.getChildren().clear();
+            
+            final List<Node> nodes = tree.listNode(0);
+            for (Node node : nodes) {
+                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+            }
+        });
+    }
+    
+    private void loadFolder(ActionEvent actionEvent) {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("选择QQ堂根目录");
+        
+        if (StringHelper.isNotNullAndEmpty(config.qqt_path)) {
+            File lastFolder = new File(config.qqt_path);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
+        }
+        File file = chooser.showDialog(stage);
+        if (file != null) {
+            config.qqt_path = file.getAbsolutePath();
+            
+            new Thread(() -> {
+                try {
+                    loadFolderImpl(file);
+                } catch (Exception e) {
+                    LogHelper.error("load folder error", e);
+                }
+            }).start();
+        }
+    }
+    
+    private void loadFolderImpl(File file) {
+        tree = new FileTreeBuilder(
+            file.getAbsolutePath(), new IdGenerator()
+        ).build();
+        
+        vfs = new FilePackage(file.getAbsolutePath());
+        vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
+        vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        
+        Platform.runLater(() -> {
+            dummyTreeItem.getChildren().clear();
+            
+            final List<Node> nodes = tree.listNode(0);
+            for (Node node : nodes) {
+                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+            }
+        });
+    }
+    
+    private void openFolderQqtRoot(ActionEvent event) {
+        openFolderImpl(config.qqt_path);
+    }
+    
+    private void openFolderExportFile(ActionEvent event) {
+        openFolderImpl(config.export_file_path);
+    }
+    
+    private void openFolderExportImage(ActionEvent event) {
+        openFolderImpl(config.export_image_path);
+    }
+    
+    private void openFolderImpl(String filePath) {
+        if (StringHelper.isNotNullAndEmpty(filePath)) {
+            new Thread(() -> {
+                try {
+                    Desktop.getDesktop().open(new File(filePath));
+                } catch (Exception e) {
+                    LogHelper.error(String.format("open folder error, %s", filePath), e);
+                }
+            }).start();
+        }
+    }
+    
+    private void exportFile(boolean recursively) {
         TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
@@ -406,7 +431,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         
         IPackage target = null;
         
-        List<Leaf> list = tree.listLeaf(selected.getValue());
+        List<Leaf> list = tree.listLeaf(selected.getValue(), recursively);
         for (Leaf leaf : list) {
             try {
                 if (target == null) {
@@ -422,8 +447,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         }
     }
     
-    @FXML
-    protected void exportImage(ActionEvent event) {
+    private void exportImage(boolean recursively) {
         final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
@@ -442,7 +466,7 @@ public class QqtLocalController extends QqtViewBase implements DisplayContext, I
         IPackage target = null;
         Node node = selected.getValue();
         
-        List<Leaf> list = tree.listLeaf(selected.getValue());
+        List<Leaf> list = tree.listLeaf(selected.getValue(), recursively);
         for (Leaf leaf : list) {
             try {
                 if (target == null) {
