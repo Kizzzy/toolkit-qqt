@@ -1,101 +1,76 @@
 package cn.kizzzy.qqt.display;
 
-import cn.kizzzy.helper.LogHelper;
-import cn.kizzzy.javafx.display.DisplayParam;
+import cn.kizzzy.javafx.display.Display;
+import cn.kizzzy.javafx.display.DisplayAAA;
+import cn.kizzzy.javafx.display.DisplayAttribute;
+import cn.kizzzy.javafx.display.DisplayFrame;
+import cn.kizzzy.javafx.display.DisplayTrack;
+import cn.kizzzy.javafx.display.DisplayTracks;
 import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
+import cn.kizzzy.vfs.IPackage;
 
 import java.awt.image.BufferedImage;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-@DisplayFlag(suffix = {
+@DisplayAttribute(suffix = {
     "map",
 })
-public class MapDisplay extends Display {
-    private int index;
-    private int total;
-    private QqtMap map;
+public class MapDisplay extends Display<IPackage> {
     
-    private List<DisplayParam> params;
-    
-    public MapDisplay(DisplayContext context, String path) {
+    public MapDisplay(IPackage context, String path) {
         super(context, path);
     }
     
     @Override
-    public void init() {
+    public DisplayAAA load() {
         QqtMap map = context.load(path, QqtMap.class);
+        if (map == null) {
+            return null;
+        }
         
-        index = 0;
-        total = 1;
+        DisplayTracks tracks = new DisplayTracks();
         
-        params = new LinkedList<>();
         for (int i = 0; i < 3; ++i) {
-            params.addAll(createImage(map.layers.get(i), 15, 13, 20, i * 320));
+            DisplayFrame frame = new DisplayFrame();
+            frame.x = 200 + i * 320;
+            frame.y = 200;
+            frame.width = 15 * 20;
+            frame.height = 13 * 20;
+            frame.image = createImage(map.layers.get(i), 15, 13, 20);
+            frame.extra = "";
+            
+            DisplayTrack track = new DisplayTrack();
+            track.frames.add(frame);
+            
+            tracks.tracks.add(track);
         }
         
         QqtImg img = context.load(path.replace(".map", ".img"), QqtImg.class);
         if (img != null) {
+            DisplayTrack track = new DisplayTrack();
+            
             for (QqtImgItem item : img.items) {
-                DisplayParam param = new DisplayParam.Builder()
-                    .setX(200)
-                    .setY(480)
-                    .setWidth(item.width)
-                    .setHeight(item.height)
-                    .setImage(QqtImgHelper.toImage(item))
-                    .build();
-                params.add(param);
+                DisplayFrame frame = new DisplayFrame();
+                frame.x = 200;
+                frame.y = 480;
+                frame.width = item.width;
+                frame.height = item.height;
+                frame.image = QqtImgHelper.toImage(item);
+                frame.extra = "";
+                
+                track.frames.add(frame);
             }
+            tracks.tracks.add(track);
         }
         
-        displayImpl();
+        return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
     }
     
-    @Override
-    public void prev() {
-        index--;
-        if (index < 0) {
-            index = total - 1;
-        }
-        
-        displayImpl();
-    }
-    
-    @Override
-    public void next() {
-        index++;
-        if (index >= total) {
-            index = 0;
-        }
-        
-        displayImpl();
-    }
-    
-    @Override
-    public void play() {
-        next();
-    }
-    
-    protected void displayImpl() {
-        try {
-            context.notifyListener(DisplayType.SHOW_IMAGE, params);
-        } catch (Exception e) {
-            LogHelper.error(null, e);
-        }
-    }
-    
-    public List<DisplayParam> createImage(int[][] data, int w, int h, int unit, int offset) {
-        
+    public BufferedImage createImage(int[][] data, int w, int h, int unit) {
         BufferedImage image = new BufferedImage(w * unit, h * unit, BufferedImage.TYPE_INT_ARGB);
-        
-        Map<Long, Integer> countKvs = new TreeMap<>((o1, o2) -> (int) ((o1 & 0xff) - (o2 & 0xff)));
-        
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
                 int rgb = data[y][x];
@@ -106,16 +81,6 @@ public class MapDisplay extends Display {
                 }
             }
         }
-        
-        List<DisplayParam> params = new LinkedList<>();
-        DisplayParam param = new DisplayParam.Builder()
-            .setX(200 + offset)
-            .setY(200)
-            .setWidth(w * unit)
-            .setHeight(h * unit)
-            .setImage(image)
-            .build();
-        params.add(param);
-        return params;
+        return image;
     }
 }

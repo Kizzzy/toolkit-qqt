@@ -2,7 +2,14 @@
 
 <?import cn.kizzzy.javafx.display.DisplayTabView?>
 <?import javafx.collections.FXCollections?>
-<?import javafx.scene.control.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.*?>
 <?import java.lang.String?>
 <?import java.net.URL?>
@@ -18,10 +25,6 @@
                             <children>
                                 <TextField fx:id="filterValue" HBox.hgrow="ALWAYS"/>
                                 <Button onAction="#onFilter" text="查找节点"/>
-                                <Button mnemonicParsing="false" onAction="#showPrev" text="上一帧" HBox.hgrow="NEVER"/>
-                                <Button mnemonicParsing="false" onAction="#showNext" text="下一帧" HBox.hgrow="NEVER"/>
-                                <Button mnemonicParsing="false" onAction="#play" text="播放" HBox.hgrow="NEVER"/>
-                                <Button mnemonicParsing="false" onAction="#playThis" text="连续播放" HBox.hgrow="NEVER"/>
                             </children>
                         </HBox>
                         <HBox alignment="CENTER_RIGHT" spacing="8.0" VBox.vgrow="NEVER">
@@ -34,8 +37,6 @@
                                     </children>
                                 </AnchorPane>
                                 <CheckBox fx:id="include_leaf" text="包含叶节点"/>
-                                <CheckBox fx:id="canvas_black" text="Canvas黑色"/>
-                                <CheckBox fx:id="image_filter" text="过滤背景"/>
                                 <CheckBox fx:id="lock_tab" text="Tap锁定"/>
                                 <ChoiceBox fx:id="show_choice">
                                     <items>

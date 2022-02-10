@@ -1,103 +1,55 @@
 package cn.kizzzy.qqt.display;
 
-import cn.kizzzy.helper.LogHelper;
-import cn.kizzzy.javafx.display.DisplayParam;
+import cn.kizzzy.javafx.display.Display;
+import cn.kizzzy.javafx.display.DisplayAAA;
+import cn.kizzzy.javafx.display.DisplayAttribute;
+import cn.kizzzy.javafx.display.DisplayFrame;
+import cn.kizzzy.javafx.display.DisplayTrack;
+import cn.kizzzy.javafx.display.DisplayTracks;
 import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
+import cn.kizzzy.vfs.IPackage;
 
 import java.awt.image.BufferedImage;
-import java.util.Collections;
 
-@DisplayFlag(suffix = {
+@DisplayAttribute(suffix = {
     "img",
 })
-public class ImgDisplay extends Display {
+public class ImgDisplay extends Display<IPackage> {
     
-    private int index;
-    private int total;
-    
-    private String[] infos;
-    private DisplayParam[] params;
-    
-    public ImgDisplay(DisplayContext context, String path) {
-        super(context, path);
+    public ImgDisplay(IPackage vfs, String path) {
+        super(vfs, path);
     }
     
     @Override
-    public void init() {
+    public DisplayAAA load() {
         QqtImg img = context.load(path, QqtImg.class);
+        if (img == null) {
+            return null;
+        }
         
-        index = 0;
-        total = img.items.length - 1;
-        
-        context.notifyListener(DisplayType.SHOW_TEXT, img.toString());
-        
-        infos = new String[img.count];
-        params = new DisplayParam[img.count];
-        for (int i = 0; i < img.count; ++i) {
-            QqtImgItem item = img.items[i];
-            
-            infos[i] = String.format(
-                "Show Image(%d/%d) [%d * %d * %s]",
-                i + 1,
-                item.file.count,
-                item.width,
-                item.height,
-                retrieveImageType(item.file.major)
-            );
-            
+        DisplayTrack track = new DisplayTrack();
+        int i = 0;
+        for (QqtImgItem item : img.items) {
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
-                wrapperImage(image);
+                DisplayFrame frame = new DisplayFrame();
+                frame.x = 200;
+                frame.y = 200;
+                frame.width = item.width;
+                frame.height = item.height;
+                frame.image = image;
+                frame.time = 167 * (i++);
+                frame.extra = String.format("%02d/%02d", i, img.count);
                 
-                params[i] = new DisplayParam.Builder()
-                    .setX(getLayoutX(item))
-                    .setY(getLayoutY(item))
-                    .setWidth(item.width)
-                    .setHeight(item.height)
-                    .setImage(image)
-                    .build();
+                track.frames.add(frame);
             }
         }
         
-        displayImpl();
-    }
-    
-    @Override
-    public void prev() {
-        index--;
-        if (index < 0) {
-            index = total - 1;
-        }
-        
-        displayImpl();
-    }
-    
-    @Override
-    public void next() {
-        index++;
-        if (index >= total) {
-            index = 0;
-        }
-        
-        displayImpl();
-    }
-    
-    @Override
-    public void play() {
-        next();
-    }
-    
-    protected void displayImpl() {
-        try {
-            context.notifyListener(DisplayType.TOAST_TIPS, infos[index]);
-            if (params[index] != null) {
-                context.notifyListener(DisplayType.SHOW_IMAGE, Collections.singletonList(params[index]));
-            }
-        } catch (Exception e) {
-            LogHelper.error(null, e);
-        }
+        DisplayTracks tracks = new DisplayTracks();
+        tracks.tracks.add(track);
+        return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
     }
 }
