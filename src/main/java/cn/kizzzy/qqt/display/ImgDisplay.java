@@ -35,9 +35,12 @@ public class ImgDisplay extends Display<IPackage> {
         for (QqtImgItem item : img.items) {
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
+                float diffX = img.maxWidth / 2f + img.offsetX;
+                float diffY = img.maxHeight + img.offsetY + 20;
+                
                 DisplayFrame frame = new DisplayFrame();
-                frame.x = 200;
-                frame.y = 200;
+                frame.x = 200 + item.offsetX - diffX;
+                frame.y = 200 + item.offsetY - diffY;
                 frame.width = item.width;
                 frame.height = item.height;
                 frame.image = image;
