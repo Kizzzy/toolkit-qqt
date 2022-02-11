@@ -31,7 +31,19 @@
 
         <dependency>
             <groupId>cn.kizzzy</groupId>
+            <artifactId>lib47-javafx-display</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.kizzzy</groupId>
             <artifactId>lib47-toolkit</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.kizzzy</groupId>
+            <artifactId>lib47-json</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
