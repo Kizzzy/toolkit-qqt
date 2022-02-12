@@ -36,7 +36,7 @@ public class ImgDisplay extends Display<IPackage> {
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
                 float diffX = img.maxWidth / 2f + img.offsetX;
-                float diffY = img.maxHeight + img.offsetY + 20;
+                float diffY = img.maxHeight + img.offsetY - 20;
                 
                 DisplayFrame frame = new DisplayFrame();
                 frame.x = 200 + item.offsetX - diffX;
