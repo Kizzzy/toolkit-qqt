@@ -24,9 +24,11 @@ import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
 import cn.kizzzy.vfs.handler.QqtImgHandler;
 import cn.kizzzy.vfs.handler.StringFileHandler;
+import cn.kizzzy.vfs.pack.CombinePackage;
 import cn.kizzzy.vfs.pack.FilePackage;
 import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
+import cn.kizzzy.vfs.tree.Forest;
 import cn.kizzzy.vfs.tree.IdGenerator;
 import cn.kizzzy.vfs.tree.IdxTreeBuilder;
 import cn.kizzzy.vfs.tree.Leaf;
@@ -53,6 +55,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -122,6 +125,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             new MenuItemArg(0, "设置", this::openSetting),
             new MenuItemArg(1, "加载/Idx", this::loadIdx),
             new MenuItemArg(1, "加载/目录", this::loadFolder),
+            new MenuItemArg(1, "加载/Full", this::loadFull),
             new MenuItemArg(2, "打开/QQ堂", this::openFolderQqtRoot),
             new MenuItemArg(2, "打开/文件路径", this::openFolderExportFile),
             new MenuItemArg(2, "打开/图片路径", this::openFolderExportImage),
@@ -186,6 +190,61 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
         dialogFactory.show(config);
     }
+    
+    private void loadFull(ActionEvent event) {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("选择QQ堂根目录");
+        
+        if (StringHelper.isNotNullAndEmpty(config.qqt_path)) {
+            File lastFolder = new File(config.qqt_path);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
+        }
+        File file = chooser.showDialog(stage);
+        if (file != null) {
+            config.qqt_path = file.getAbsolutePath();
+            
+            new Thread(() -> {
+                try {
+                    loadFullImpl(file);
+                } catch (Exception e) {
+                    LogHelper.error("load folder error", e);
+                }
+            }).start();
+        }
+    }
+    
+    private void loadFullImpl(File file) {
+        ITree rootTree = new FileTreeBuilder(file.getAbsolutePath()).build();
+        IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
+        rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
+        rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        
+        IdxFile idxFile = rootVfs.load("data/object.idx", IdxFile.class);
+        if (idxFile == null) {
+            return;
+        }
+        
+        ITree idxTree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
+        IPackage idxVfs = new QqtPackage(file.getAbsolutePath(), idxTree);
+        idxVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        
+        tree = new Forest(Arrays.asList(rootVfs, idxTree));
+        vfs = new CombinePackage(rootVfs, idxVfs);
+        
+        displayer.setContext(vfs);
+        
+        Platform.runLater(() -> {
+            dummyTreeItem.getChildren().clear();
+            
+            final List<Node> nodes = tree.listNode(0);
+            for (Node node : nodes) {
+                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+            }
+        });
+    }
+    
     
     private void loadIdx(ActionEvent actionEvent) {
         FileChooser chooser = new FileChooser();
