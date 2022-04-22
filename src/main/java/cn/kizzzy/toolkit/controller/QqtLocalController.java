@@ -457,6 +457,16 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             return;
         }
         
+        if (StringHelper.isNullOrEmpty(config.export_image_path) || !new File(config.export_image_path).exists()) {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("选择保存图片的文件夹");
+            File file = chooser.showDialog(stage);
+            if (file == null) {
+                return;
+            }
+            config.export_image_path = file.getAbsolutePath();
+        }
+        
         Node node = selected.getValue();
         if (node.leaf && node.name.endsWith(".map")) {
             Leaf leaf = (Leaf) node;
@@ -468,7 +478,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             MapElemProp prop = vfs.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
             MapElemDataProvider provider = new MapElemDataProvider(prop);
             
-            BufferedImage image = new BufferedImage(map.width * 40 + 80, map.height * 40 + 80, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage image = new BufferedImage(map.width * 40 + 160, map.height * 40 + 160, BufferedImage.TYPE_INT_ARGB);
             
             for (int i = 2; i >= 0; --i) {
                 QqtMap.Layer layer = map.layers[i];
@@ -529,8 +539,8 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         
         for (int r = 0; r < image.getHeight(); ++r) {
             for (int c = 0; c < image.getWidth(); ++c) {
-                int offsetX = 40 + x * 40 - elementData.x + c;
-                int offsetY = 40 + y * 40 - elementData.y + r;
+                int offsetX = 80 + x * 40 - elementData.x + c;
+                int offsetY = 80 + y * 40 - elementData.y + r;
                 
                 int argb = image.getRGB(c, r);
                 if ((argb & 0xFF000000) == 0) {
