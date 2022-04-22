@@ -9,6 +9,9 @@ import cn.kizzzy.javafx.display.DisplayOperator;
 import cn.kizzzy.javafx.display.DisplayTabView;
 import cn.kizzzy.javafx.setting.ISettingDialogFactory;
 import cn.kizzzy.javafx.setting.SettingDialogFactory;
+import cn.kizzzy.qqt.GameMode;
+import cn.kizzzy.qqt.MapCity;
+import cn.kizzzy.qqt.MapElemDataProvider;
 import cn.kizzzy.qqt.MapElemProp;
 import cn.kizzzy.qqt.QqtConfig;
 import cn.kizzzy.qqt.QqtImg;
@@ -135,6 +138,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             new MenuItemArg(3, "导出/文件(递归)", event -> exportFile(true)),
             new MenuItemArg(3, "导出/图片", event -> exportImage(false)),
             new MenuItemArg(3, "导出/图片(递归)", event -> exportImage(true)),
+            new MenuItemArg(3, "导出/地图", this::exportMapImage),
             new MenuItemArg(4, "复制路径", this::copyPath),
         });
         
@@ -445,6 +449,109 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 LogHelper.info(String.format("export image failed: %s", leaf.name), e);
             }
         }
+    }
+    
+    private void exportMapImage(ActionEvent event) {
+        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        
+        Node node = selected.getValue();
+        if (node.leaf && node.name.endsWith(".map")) {
+            Leaf leaf = (Leaf) node;
+            QqtMap map = vfs.load(leaf.path, QqtMap.class);
+            if (map == null) {
+                return;
+            }
+            
+            MapElemProp prop = vfs.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
+            MapElemDataProvider provider = new MapElemDataProvider(prop);
+            
+            BufferedImage image = new BufferedImage(map.width * 40 + 80, map.height * 40 + 80, BufferedImage.TYPE_INT_ARGB);
+            
+            for (int i = 2; i >= 0; --i) {
+                QqtMap.Layer layer = map.layers[i];
+                for (int y = 0; y < map.height; ++y) {
+                    for (int x = 0; x < map.width; ++x) {
+                        QqtMap.Element element = layer.elements[y][x];
+                        processElement(element, x, y, provider, image);
+                    }
+                }
+            }
+            
+            try {
+                GameMode mode = GameMode.valueOf(map.gameMode);
+                QqtMap.Points points = map.points[3];
+                for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
+                    QqtMap.Element element = mode.getSpecials()[i];
+                    QqtMap.Point point = points.points[i];
+                    
+                    processElement(element, point.x, point.y, provider, image);
+                }
+            } catch (Exception e) {
+            
+            }
+            
+            IPackage target = new FilePackage(config.export_image_path + "/map");
+            target.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+            
+            target.save(leaf.path + ".png", image);
+            /*
+            DisplayTracks tracks = new DisplayTracks();
+            DisplayFrame frame = new DisplayFrame();
+            frame.x = 0;
+            frame.y = 0;
+            frame.width = image.getWidth();
+            frame.height = image.getHeight();
+            frame.image = image;
+            frame.extra = "";
+            
+            DisplayTrack track = new DisplayTrack();
+            track.frames.add(frame);
+            
+            tracks.tracks.add(track);
+            
+            display_tab.show(new DisplayAAA(DisplayType.SHOW_IMAGE, tracks));*/
+        }
+    }
+    
+    private void processElement(QqtMap.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) {
+        BufferedImage image = createImage(element);
+        if (image == null) {
+            return;
+        }
+        
+        MapElemProp.Element elementData = provider.getElementData(element.value);
+        if (elementData == null) {
+            return;
+        }
+        
+        for (int r = 0; r < image.getHeight(); ++r) {
+            for (int c = 0; c < image.getWidth(); ++c) {
+                int offsetX = 40 + x * 40 - elementData.x + c;
+                int offsetY = 40 + y * 40 - elementData.y + r;
+                
+                int argb = image.getRGB(c, r);
+                if ((argb & 0xFF000000) == 0) {
+                    continue;
+                }
+                graphics.setRGB(offsetX, offsetY, argb);
+            }
+        }
+    }
+    
+    private BufferedImage createImage(QqtMap.Element element) {
+        if (element.city() > 0 && element.id() > 0) {
+            MapCity city = MapCity.valueOf(element.city());
+            String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
+            QqtImg img = vfs.load(path, QqtImg.class);
+            if (img != null) {
+                QqtImgItem item = img.items[0];
+                return QqtImgHelper.toImage(item);
+            }
+        }
+        return null;
     }
     
     protected void copyPath(ActionEvent actionEvent) {

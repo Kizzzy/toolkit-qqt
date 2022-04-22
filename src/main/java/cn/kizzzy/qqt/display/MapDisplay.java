@@ -9,6 +9,7 @@ import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
 import cn.kizzzy.qqt.GameMode;
 import cn.kizzzy.qqt.MapCity;
+import cn.kizzzy.qqt.MapElemDataProvider;
 import cn.kizzzy.qqt.MapElemProp;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
@@ -17,8 +18,6 @@ import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.Map;
 
 @DisplayAttribute(suffix = {
     "map",
@@ -103,23 +102,5 @@ public class MapDisplay extends Display<IPackage> {
             }
         }
         return null;
-    }
-    
-    public static class MapElemDataProvider {
-        
-        private final MapElemProp prop;
-        private final Map<Integer, MapElemProp.Element> kvs = new HashMap<>();
-        
-        public MapElemDataProvider(MapElemProp prop) {
-            this.prop = prop;
-            
-            for (MapElemProp.Element element : prop.elements) {
-                kvs.put(element.id, element);
-            }
-        }
-        
-        public MapElemProp.Element getElementData(int id) {
-            return kvs.get(id);
-        }
     }
 }
