@@ -9,6 +9,7 @@ import cn.kizzzy.javafx.display.DisplayOperator;
 import cn.kizzzy.javafx.display.DisplayTabView;
 import cn.kizzzy.javafx.setting.ISettingDialogFactory;
 import cn.kizzzy.javafx.setting.SettingDialogFactory;
+import cn.kizzzy.qqt.MapElemProp;
 import cn.kizzzy.qqt.QqtConfig;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
@@ -21,6 +22,7 @@ import cn.kizzzy.vfs.ITree;
 import cn.kizzzy.vfs.handler.BufferedImageHandler;
 import cn.kizzzy.vfs.handler.IdxFileHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
+import cn.kizzzy.vfs.handler.MapElemPropHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
 import cn.kizzzy.vfs.handler.QqtImgHandler;
 import cn.kizzzy.vfs.handler.StringFileHandler;
@@ -123,9 +125,9 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         
         JavafxHelper.initContextMenu(tree_view, () -> stage.getScene().getWindow(), new MenuItemArg[]{
             new MenuItemArg(0, "设置", this::openSetting),
+            new MenuItemArg(1, "加载/Full", this::loadFull),
             new MenuItemArg(1, "加载/Idx", this::loadIdx),
             new MenuItemArg(1, "加载/目录", this::loadFolder),
-            new MenuItemArg(1, "加载/Full", this::loadFull),
             new MenuItemArg(2, "打开/QQ堂", this::openFolderQqtRoot),
             new MenuItemArg(2, "打开/文件路径", this::openFolderExportFile),
             new MenuItemArg(2, "打开/图片路径", this::openFolderExportImage),
@@ -220,6 +222,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
         rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
         
         IdxFile idxFile = rootVfs.load("data/object.idx", IdxFile.class);
         if (idxFile == null) {

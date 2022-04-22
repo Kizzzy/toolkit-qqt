@@ -7,7 +7,9 @@ import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.javafx.display.image.DisplayFrame;
 import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
+import cn.kizzzy.qqt.GameMode;
 import cn.kizzzy.qqt.MapCity;
+import cn.kizzzy.qqt.MapElemProp;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
@@ -15,6 +17,8 @@ import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 
 import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 
 @DisplayAttribute(suffix = {
     "map",
@@ -32,52 +36,90 @@ public class MapDisplay extends Display<IPackage> {
             return null;
         }
         
+        MapElemProp prop = context.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
+        MapElemDataProvider provider = new MapElemDataProvider(prop);
+        
         DisplayTracks tracks = new DisplayTracks();
         
         for (int i = 2; i >= 0; --i) {
-            DisplayFrame frame = new DisplayFrame();
-            frame.x = 200;
-            frame.y = 200;
-            frame.width = 15 * 40;
-            frame.height = 13 * 40;
-            frame.image = createImage(map.layers[i], 15, 13, 40, 40);
-            frame.extra = "";
-            
-            DisplayTrack track = new DisplayTrack();
-            track.frames.add(frame);
-            
-            tracks.tracks.add(track);
+            QqtMap.Layer layer = map.layers[i];
+            for (int y = 0; y < map.height; ++y) {
+                for (int x = 0; x < map.width; ++x) {
+                    QqtMap.Element element = layer.elements[y][x];
+                    processElement(element, x, y, provider, tracks);
+                }
+            }
+        }
+        
+        try {
+            GameMode mode = GameMode.valueOf(map.gameMode);
+            QqtMap.Points points = map.points[3];
+            for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
+                QqtMap.Element element = mode.getSpecials()[i];
+                QqtMap.Point point = points.points[i];
+                
+                processElement(element, point.x, point.y, provider, tracks);
+            }
+        } catch (Exception e) {
+        
         }
         
         return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
     }
     
-    public BufferedImage createImage(QqtMap.Layer layer, int w, int h, int unitX, int unitY) {
-        BufferedImage image = new BufferedImage(w * unitX, h * unitY, BufferedImage.TYPE_INT_ARGB);
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                QqtMap.Element element = layer.elements[y][x];
-                if (element.city > 0 && element.id > 0) {
-                    MapCity city = MapCity.valueOf(element.city);
-                    
-                    String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id);
-                    QqtImg img = context.load(path, QqtImg.class);
-                    if (img != null) {
-                        QqtImgItem item = img.items[0];
-                        BufferedImage child = QqtImgHelper.toImage(item);
-                        if (child != null) {
-                            for (int m = 0; m < unitX && m < item.width; ++m) {
-                                for (int n = 0; n < unitY && n < item.height; ++n) {
-                                    int rgb = child.getRGB(m, n);
-                                    
-                                    image.setRGB(x * unitX + m, y * unitY + n, rgb);
-                                }
-                            }
-                        }
-                    }
-                }
+    private void processElement(QqtMap.Element element, int x, int y, MapElemDataProvider provider, DisplayTracks tracks) {
+        BufferedImage image = createImage(element);
+        if (image == null) {
+            return;
+        }
+        
+        MapElemProp.Element elementData = provider.getElementData(element.value);
+        if (elementData == null) {
+            return;
+        }
+        
+        DisplayFrame frame = new DisplayFrame();
+        frame.x = 200 + x * 40 - elementData.x;
+        frame.y = 200 + y * 40 - elementData.y;
+        frame.width = image.getWidth();
+        frame.height = image.getHeight();
+        frame.image = image;
+        frame.extra = "";
+        
+        DisplayTrack track = new DisplayTrack();
+        track.frames.add(frame);
+        
+        tracks.tracks.add(track);
+    }
+    
+    private BufferedImage createImage(QqtMap.Element element) {
+        if (element.city() > 0 && element.id() > 0) {
+            MapCity city = MapCity.valueOf(element.city());
+            String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
+            QqtImg img = context.load(path, QqtImg.class);
+            if (img != null) {
+                QqtImgItem item = img.items[0];
+                return QqtImgHelper.toImage(item);
             }
         }
-        return image;
+        return null;
+    }
+    
+    public static class MapElemDataProvider {
+        
+        private final MapElemProp prop;
+        private final Map<Integer, MapElemProp.Element> kvs = new HashMap<>();
+        
+        public MapElemDataProvider(MapElemProp prop) {
+            this.prop = prop;
+            
+            for (MapElemProp.Element element : prop.elements) {
+                kvs.put(element.id, element);
+            }
+        }
+        
+        public MapElemProp.Element getElementData(int id) {
+            return kvs.get(id);
+        }
     }
 }
