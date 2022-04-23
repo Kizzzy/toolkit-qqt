@@ -138,8 +138,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             new MenuItemArg(2, "打开/图片路径", this::openFolderExportImage),
             new MenuItemArg(3, "导出/文件", event -> exportFile(false)),
             new MenuItemArg(3, "导出/文件(递归)", event -> exportFile(true)),
-            new MenuItemArg(3, "导出/图片", event -> exportImage(false)),
-            new MenuItemArg(3, "导出/图片(递归)", event -> exportImage(true)),
+            new MenuItemArg(3, "导出/图片", event -> exportImage(false, false)),
+            new MenuItemArg(3, "导出/图片(递归)", event -> exportImage(true, false)),
+            new MenuItemArg(3, "导出/图片(等尺寸)", event -> exportImage(false, true)),
+            new MenuItemArg(3, "导出/图片(等尺寸)(递归)", event -> exportImage(true, true)),
             new MenuItemArg(3, "导出/地图", this::exportMapImage),
             new MenuItemArg(4, "复制路径", this::copyPath),
         });
@@ -413,7 +415,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
     }
     
-    private void exportImage(boolean recursively) {
+    private void exportImage(boolean recursively, boolean fixed) {
         final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
         if (selected == null) {
             return;
@@ -447,7 +449,11 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                         for (QqtImgItem item : img.items) {
                             if (item != null) {
                                 String fullPath = leaf.path.replace(".img", String.format("-%02d.png", item.index));
-                                target.save(fullPath, QqtImgHelper.toImage(item));
+                                if (fixed) {
+                                    target.save(fullPath, QqtImgHelper.toImageFix(item));
+                                } else {
+                                    target.save(fullPath, QqtImgHelper.toImage(item));
+                                }
                             }
                         }
                     }

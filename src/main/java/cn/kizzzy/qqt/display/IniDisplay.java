@@ -1,5 +1,6 @@
 package cn.kizzzy.qqt.display;
 
+import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.javafx.display.Display;
 import cn.kizzzy.javafx.display.DisplayAAA;
 import cn.kizzzy.javafx.display.DisplayAttribute;
@@ -38,6 +39,13 @@ public class IniDisplay extends Display<IPackage> {
         "#595959ff",
     };
     
+    private static final String[] DIRS = new String[]{
+        "right",
+        "up",
+        "left",
+        "down",
+    };
+    
     public IniDisplay(IPackage vfs, String path) {
         super(vfs, path);
     }
@@ -50,13 +58,29 @@ public class IniDisplay extends Display<IPackage> {
             return null;
         }
         
-        QqtAvatar qqtAvatar = context.load(path, QqtAvatar.class);
-        if (qqtAvatar == null) {
+        String action = "walk";
+        
+        QqtAvatar zIndex = context.load("object/player/player_z.ini", QqtAvatar.class);
+        if (zIndex == null) {
+            LogHelper.info("load avatar z-index failed");
             return null;
         }
         
-        QqtAvatar.Avatar avatar = qqtAvatar.avatarKvs.get("walk");
+        QqtAvatar.Avatar wIndex = zIndex.avatarKvs.get(action);
+        if (wIndex == null) {
+            LogHelper.info("z-index of this action is not found");
+            return null;
+        }
+        
+        QqtAvatar qqtAvatar = context.load(path, QqtAvatar.class);
+        if (qqtAvatar == null) {
+            LogHelper.info("load avatar failed");
+            return null;
+        }
+        
+        QqtAvatar.Avatar avatar = qqtAvatar.avatarKvs.get(action);
         if (avatar == null) {
+            LogHelper.info("avatar of this action is not found");
             return null;
         }
         
@@ -71,39 +95,43 @@ public class IniDisplay extends Display<IPackage> {
         
         for (QqtAvatar.Element element : elements) {
             float time = 167 * (i++);
-            
-            processElement(element, time, tracks, false);
-            processElement(element, time, tracks, true);
+            processElement(element, action, time, tracks, wIndex, false);
+            processElement(element, action, time, tracks, wIndex, true);
         }
         
         return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
     }
     
-    private void processElement(QqtAvatar.Element element, float time, DisplayTracks tracks, boolean mixed) {
-        String imgPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, "walk", mixed ? "_m" : "");
-        QqtImg img = context.load(imgPath, QqtImg.class);
+    private void processElement(QqtAvatar.Element element, String action, float time, DisplayTracks tracks, QqtAvatar.Avatar zAvatar, boolean mixed) {
+        String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
+        QqtImg img = context.load(fullPath, QqtImg.class);
         if (img == null) {
             return;
         }
         
         DisplayTrack track = new DisplayTrack();
         
-        for (int i = 0, n = img.count / img.planes; i < n; ++i) {
+        for (int i = 0, n = img.count; i < n; ++i) {
             QqtImgItem item = img.items[i];
             
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
-                float diffX = img.maxWidth / 2f + img.offsetX;
-                float diffY = img.maxHeight + img.offsetY - 20;
+                int dir = i / (img.count / img.planes);
+                String key = String.format("%s_z_%s", element.name, DIRS[dir]);
+                QqtAvatar.Element zElement = zAvatar.elementKvs.get(key);
+                
+                float offsetX = -(img.maxWidth / 2f + img.offsetX) + item.offsetX;
+                float offsetY = -(img.maxHeight + img.offsetY - 20) + item.offsetY;
                 
                 DisplayFrame frame = new DisplayFrame();
-                frame.x = 200 + item.offsetX - diffX;
-                frame.y = 200 + item.offsetY - diffY;
+                frame.x = 200 + offsetX;
+                frame.y = 200 + offsetY;
                 frame.width = item.width;
                 frame.height = item.height;
                 frame.image = image;
                 frame.time = time;
                 frame.mixed = mixed;
+                frame.order = zElement == null ? 0 : Integer.parseInt(zElement.id);
                 //frame.extra = String.format("%02d/%02d", i, img.count);
                 
                 track.frames.add(frame);
