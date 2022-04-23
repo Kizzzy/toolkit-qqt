@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.*?>
 <?import java.lang.String?>
 <?import java.net.URL?>
-<AnchorPane minHeight="300.0" minWidth="400.0" xmlns="http://javafx.com/javafx/10.0.2-internal"
+<AnchorPane minHeight="600.0" minWidth="800.0" xmlns="http://javafx.com/javafx/10.0.2-internal"
             xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.kizzzy.toolkit.controller.QqtLocalController">
     <children>
         <VBox spacing="8.0" AnchorPane.bottomAnchor="8.0" AnchorPane.leftAnchor="8.0" AnchorPane.rightAnchor="8.0"

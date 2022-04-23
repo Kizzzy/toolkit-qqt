@@ -13,6 +13,7 @@ import cn.kizzzy.qqt.GameMode;
 import cn.kizzzy.qqt.MapCity;
 import cn.kizzzy.qqt.MapElemDataProvider;
 import cn.kizzzy.qqt.MapElemProp;
+import cn.kizzzy.qqt.QqtAvatar;
 import cn.kizzzy.qqt.QqtConfig;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
@@ -27,6 +28,7 @@ import cn.kizzzy.vfs.handler.IdxFileHandler;
 import cn.kizzzy.vfs.handler.JsonFileHandler;
 import cn.kizzzy.vfs.handler.MapElemPropHandler;
 import cn.kizzzy.vfs.handler.QQtMapHandler;
+import cn.kizzzy.vfs.handler.QqtAvatarHandler;
 import cn.kizzzy.vfs.handler.QqtImgHandler;
 import cn.kizzzy.vfs.handler.StringFileHandler;
 import cn.kizzzy.vfs.pack.CombinePackage;
@@ -226,6 +228,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
         rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        rootVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
         
         IdxFile idxFile = rootVfs.load("data/object.idx", IdxFile.class);
@@ -236,6 +239,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         ITree idxTree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
         IPackage idxVfs = new QqtPackage(file.getAbsolutePath(), idxTree);
         idxVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        idxVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
         tree = new Forest(Arrays.asList(rootVfs, idxTree));
         vfs = new CombinePackage(rootVfs, idxVfs);
@@ -283,12 +287,14 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         IPackage iPackage = new FilePackage(file.getParent());
         iPackage.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        iPackage.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
         IdxFile idxFile = iPackage.load(FileHelper.getName(file.getAbsolutePath()), IdxFile.class);
         tree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
         
         vfs = new QqtPackage(file.getParent(), tree);
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        vfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
         displayer.setContext(vfs);
         
@@ -335,6 +341,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
         vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        vfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
         displayer.setContext(vfs);
         
