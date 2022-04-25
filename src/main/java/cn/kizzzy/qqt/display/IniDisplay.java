@@ -9,24 +9,17 @@ import cn.kizzzy.javafx.display.image.DisplayFrame;
 import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
 import cn.kizzzy.qqt.QqtAvatar;
-import cn.kizzzy.qqt.QqtAvatarElementComparator;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 
 import java.awt.image.BufferedImage;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
 
 @DisplayAttribute(suffix = {
     "ini",
 }, priority = 999)
 public class IniDisplay extends Display<IPackage> {
-    
-    private static final Comparator<QqtAvatar.Element> comparator
-        = new QqtAvatarElementComparator();
     
     private static final String[] COLORS = new String[]{
         "#d34a37ff",
@@ -90,10 +83,7 @@ public class IniDisplay extends Display<IPackage> {
         int i = 0;
         //j = 0;
         
-        List<QqtAvatar.Element> elements = new LinkedList<>(avatar.elementKvs.values());
-        elements.sort(comparator);
-        
-        for (QqtAvatar.Element element : elements) {
+        for (QqtAvatar.Element element : avatar.elementKvs.values()) {
             float time = 167 * (i++);
             processElement(element, action, time, tracks, wIndex, false);
             processElement(element, action, time, tracks, wIndex, true);
