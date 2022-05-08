@@ -3,21 +3,13 @@ package cn.kizzzy.toolkit.controller;
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.helper.StringHelper;
+import cn.kizzzy.javafx.StageHelper;
 import cn.kizzzy.javafx.common.JavafxHelper;
 import cn.kizzzy.javafx.common.MenuItemArg;
 import cn.kizzzy.javafx.display.DisplayOperator;
 import cn.kizzzy.javafx.display.DisplayTabView;
-import cn.kizzzy.javafx.setting.ISettingDialogFactory;
-import cn.kizzzy.javafx.setting.SettingDialogFactory;
-import cn.kizzzy.qqt.GameMode;
-import cn.kizzzy.qqt.MapCity;
-import cn.kizzzy.qqt.MapElemDataProvider;
-import cn.kizzzy.qqt.MapElemProp;
-import cn.kizzzy.qqt.QqtAvatar;
-import cn.kizzzy.qqt.QqtConfig;
-import cn.kizzzy.qqt.QqtImg;
-import cn.kizzzy.qqt.QqtImgItem;
-import cn.kizzzy.qqt.QqtMap;
+import cn.kizzzy.javafx.setting.SettingDialog;
+import cn.kizzzy.qqt.*;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.tencent.IdxFile;
 import cn.kizzzy.toolkit.view.AbstractView;
@@ -111,7 +103,8 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     
     protected IPackage userVfs;
     protected QqtConfig config;
-    protected ISettingDialogFactory dialogFactory;
+    private StageHelper stageHelper
+        = new StageHelper();
     
     protected IPackage vfs;
     protected ITree tree;
@@ -127,6 +120,8 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         
         config = userVfs.load(CONFIG_PATH, QqtConfig.class);
         config = config != null ? config : new QqtConfig();
+        
+        stageHelper.addFactory(SettingDialog::new, SettingDialog.class);
         
         JavafxHelper.initContextMenu(tree_view, () -> stage.getScene().getWindow(), new MenuItemArg[]{
             new MenuItemArg(0, "设置", this::openSetting),
@@ -195,10 +190,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void openSetting(ActionEvent actionEvent) {
-        if (dialogFactory == null) {
-            dialogFactory = new SettingDialogFactory(stage);
-        }
-        dialogFactory.show(config);
+        SettingDialog.Args args = new SettingDialog.Args();
+        args.target = config;
+        
+        stageHelper.show(stage, args, SettingDialog.class);
     }
     
     private void loadFull(ActionEvent event) {
@@ -229,6 +224,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         ITree rootTree = new FileTreeBuilder(file.getAbsolutePath()).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
         rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
+        rootVfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
         rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
         rootVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
@@ -540,7 +536,19 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void processElement(QqtMap.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) {
-        BufferedImage image = createImage(element);
+        if (element.city() <= 0 || element.id() <= 0) {
+            return;
+        }
+        
+        MapCity city = MapCity.valueOf(element.city());
+        String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
+        QqtImg img = vfs.load(path, QqtImg.class);
+        if (img == null) {
+            return;
+        }
+        
+        QqtImgItem item = img.items[0];
+        BufferedImage image = QqtImgHelper.toImage(item);
         if (image == null) {
             return;
         }
@@ -550,10 +558,12 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             return;
         }
         
+        QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
+        
         for (int r = 0; r < image.getHeight(); ++r) {
             for (int c = 0; c < image.getWidth(); ++c) {
-                int offsetX = 80 + x * 40 - elementData.x + c;
-                int offsetY = 80 + y * 40 - elementData.y + r;
+                int offsetX = 80 + x * 40 - elementData.x + c + point.x;
+                int offsetY = 80 + y * 40 - elementData.y + r + point.y;
                 
                 int argb = image.getRGB(c, r);
                 if ((argb & 0xFF000000) == 0) {
@@ -562,19 +572,6 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 graphics.setRGB(offsetX, offsetY, argb);
             }
         }
-    }
-    
-    private BufferedImage createImage(QqtMap.Element element) {
-        if (element.city() > 0 && element.id() > 0) {
-            MapCity city = MapCity.valueOf(element.city());
-            String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
-            QqtImg img = vfs.load(path, QqtImg.class);
-            if (img != null) {
-                QqtImgItem item = img.items[0];
-                return QqtImgHelper.toImage(item);
-            }
-        }
-        return null;
     }
     
     protected void copyPath(ActionEvent actionEvent) {

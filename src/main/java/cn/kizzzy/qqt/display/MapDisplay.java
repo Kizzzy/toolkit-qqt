@@ -11,6 +11,7 @@ import cn.kizzzy.qqt.GameMode;
 import cn.kizzzy.qqt.MapCity;
 import cn.kizzzy.qqt.MapElemDataProvider;
 import cn.kizzzy.qqt.MapElemProp;
+import cn.kizzzy.qqt.QqtElementXyer;
 import cn.kizzzy.qqt.QqtImg;
 import cn.kizzzy.qqt.QqtImgItem;
 import cn.kizzzy.qqt.QqtMap;
@@ -67,7 +68,19 @@ public class MapDisplay extends Display<IPackage> {
     }
     
     private void processElement(QqtMap.Element element, int x, int y, MapElemDataProvider provider, DisplayTracks tracks) {
-        BufferedImage image = createImage(element);
+        if (element.city() <= 0 || element.id() <= 0) {
+            return;
+        }
+        
+        MapCity city = MapCity.valueOf(element.city());
+        String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
+        QqtImg img = context.load(path, QqtImg.class);
+        if (img == null) {
+            return;
+        }
+        
+        QqtImgItem item = img.items[0];
+        BufferedImage image = QqtImgHelper.toImage(item);
         if (image == null) {
             return;
         }
@@ -77,9 +90,11 @@ public class MapDisplay extends Display<IPackage> {
             return;
         }
         
+        QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
+        
         DisplayFrame frame = new DisplayFrame();
-        frame.x = 200 + x * 40 - elementData.x;
-        frame.y = 200 + y * 40 - elementData.y;
+        frame.x = 200 + x * 40 - elementData.x + point.x;
+        frame.y = 200 + y * 40 - elementData.y + point.y;
         frame.width = image.getWidth();
         frame.height = image.getHeight();
         frame.image = image;
@@ -89,18 +104,5 @@ public class MapDisplay extends Display<IPackage> {
         track.frames.add(frame);
         
         tracks.tracks.add(track);
-    }
-    
-    private BufferedImage createImage(QqtMap.Element element) {
-        if (element.city() > 0 && element.id() > 0) {
-            MapCity city = MapCity.valueOf(element.city());
-            String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
-            QqtImg img = context.load(path, QqtImg.class);
-            if (img != null) {
-                QqtImgItem item = img.items[0];
-                return QqtImgHelper.toImage(item);
-            }
-        }
-        return null;
     }
 }
