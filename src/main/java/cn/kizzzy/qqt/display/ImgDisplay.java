@@ -44,11 +44,12 @@ public class ImgDisplay extends Display<IPackage> {
                 frame.width = item.width;
                 frame.height = item.height;
                 frame.image = image;
-                frame.time = 167 * (i++);
-                frame.extra = String.format("%02d/%02d", i, img.count);
+                frame.time = 167 * i;
+                frame.extra = String.format("%02d/%02d", i + 1, img.count);
                 
                 track.frames.add(frame);
             }
+            i++;
         }
         
         DisplayTracks tracks = new DisplayTracks();

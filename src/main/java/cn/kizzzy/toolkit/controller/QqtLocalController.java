@@ -2,6 +2,8 @@ package cn.kizzzy.toolkit.controller;
 
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
+import cn.kizzzy.helper.PrintArgs;
+import cn.kizzzy.helper.PrintHelper;
 import cn.kizzzy.helper.StringHelper;
 import cn.kizzzy.javafx.StageHelper;
 import cn.kizzzy.javafx.common.JavafxHelper;
@@ -168,10 +170,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     protected void onSelectItem(Observable observable, TreeItem<Node> oldValue, TreeItem<Node> newValue) {
         if (newValue != null) {
             Node folder = newValue.getValue();
-            Leaf thumbs = null;
+            Leaf leaf = null;
             
             if (folder.leaf) {
-                thumbs = (Leaf) folder;
+                leaf = (Leaf) folder;
             } else {
                 newValue.getChildren().clear();
                 
@@ -183,8 +185,24 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 newValue.getChildren().sort(comparator);
             }
             
-            if (thumbs != null) {
-                displayer.display(thumbs.path);
+            if (leaf != null) {
+                printSelectedItem(leaf);
+                
+                displayer.display(leaf.path);
+            }
+        }
+    }
+    
+    private void printSelectedItem(Leaf leaf) {
+        if (leaf.name.endsWith(".img")) {
+            QqtImg img = vfs.load(leaf.path, QqtImg.class);
+            if (img != null) {
+                LogHelper.info(PrintHelper.ToString(img, new PrintArgs[]{
+                    new PrintArgs(QqtImg.class, null, true),
+                    new PrintArgs(QqtImgItem.class, new PrintArgs.Item[]{
+                        new PrintArgs.Item("file", true),
+                    }, false),
+                }));
             }
         }
     }
@@ -444,11 +462,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                     if (img != null) {
                         for (QqtImgItem item : img.items) {
                             if (item != null) {
-                                String fullPath = leaf.path.replace(".img", String.format("-%02d.png", item.index));
-                                if (fixed) {
-                                    target.save(fullPath, QqtImgHelper.toImageFix(item));
-                                } else {
-                                    target.save(fullPath, QqtImgHelper.toImage(item));
+                                BufferedImage image = QqtImgHelper.toImage(item, fixed);
+                                if (image != null) {
+                                    String fullPath = leaf.path.replace(".img", String.format("-%02d.png", item.index));
+                                    target.save(fullPath, image);
                                 }
                             }
                         }
