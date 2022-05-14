@@ -110,8 +110,8 @@ public class IniDisplay extends Display<IPackage> {
                 String key = String.format("%s_z_%s", element.name, DIRS[dir]);
                 QqtAvatar.Element zElement = zAvatar.elementKvs.get(key);
                 
-                float offsetX = -(img.maxWidth / 2f + img.offsetX) + item.offsetX;
-                float offsetY = -(img.maxHeight + img.offsetY - 20) + item.offsetY;
+                float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
+                float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
                 DisplayFrame frame = new DisplayFrame();
                 frame.x = 200 + offsetX;

@@ -12,6 +12,7 @@ import cn.kizzzy.javafx.display.DisplayOperator;
 import cn.kizzzy.javafx.display.DisplayTabView;
 import cn.kizzzy.javafx.setting.SettingDialog;
 import cn.kizzzy.qqt.*;
+import cn.kizzzy.qqt.custom.FixedExportView;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.tencent.IdxFile;
 import cn.kizzzy.toolkit.view.AbstractView;
@@ -29,7 +30,6 @@ import cn.kizzzy.vfs.pack.CombinePackage;
 import cn.kizzzy.vfs.pack.FilePackage;
 import cn.kizzzy.vfs.pack.QqtPackage;
 import cn.kizzzy.vfs.tree.FileTreeBuilder;
-import cn.kizzzy.vfs.tree.Forest;
 import cn.kizzzy.vfs.tree.IdGenerator;
 import cn.kizzzy.vfs.tree.IdxTreeBuilder;
 import cn.kizzzy.vfs.tree.Leaf;
@@ -56,7 +56,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -95,25 +94,28 @@ abstract class QqtViewBase extends AbstractView {
 }
 
 @MenuParameter(path = "辅助/QQ堂/解包器(本地)")
-@PluginParameter(url = "/fxml/toolkit/qqt_local_view.fxml", title = "QQ堂(解包)")
+@PluginParameter(url = "/fxml/qqt_local_view.fxml", title = "QQ堂(解包)")
 public class QqtLocalController extends QqtViewBase implements Initializable {
     
-    protected static final String CONFIG_PATH = "qqt/local.config";
+    private static final String CONFIG_PATH = "qqt/local.config";
     
-    protected static final Comparator<TreeItem<Node>> comparator
+    private static final Comparator<TreeItem<Node>> comparator
         = Comparator.comparing(TreeItem<Node>::getValue, new NodeComparator());
     
-    protected IPackage userVfs;
-    protected QqtConfig config;
+    private IPackage userVfs;
+    private QqtConfig config;
+    
     private StageHelper stageHelper
         = new StageHelper();
     
-    protected IPackage vfs;
-    protected ITree tree;
+    private IPackage vfs;
     
-    protected DisplayOperator<IPackage> displayer;
+    private DisplayOperator<IPackage> displayer;
     
-    protected TreeItem<Node> dummyTreeItem;
+    private TreeItem<Node> dummyRoot;
+    private TreeItem<Node> filterRoot;
+    
+    private PrintArgs[] printArgs;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -124,6 +126,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         config = config != null ? config : new QqtConfig();
         
         stageHelper.addFactory(SettingDialog::new, SettingDialog.class);
+        stageHelper.addFactory(FixedExportView::new, FixedExportView.class);
         
         JavafxHelper.initContextMenu(tree_view, () -> stage.getScene().getWindow(), new MenuItemArg[]{
             new MenuItemArg(0, "设置", this::openSetting),
@@ -139,12 +142,13 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             new MenuItemArg(3, "导出/图片(递归)", event -> exportImage(true, false)),
             new MenuItemArg(3, "导出/图片(等尺寸)", event -> exportImage(false, true)),
             new MenuItemArg(3, "导出/图片(等尺寸)(递归)", event -> exportImage(true, true)),
+            new MenuItemArg(3, "导出/图片(自定义)", this::exportByCustom),
             new MenuItemArg(3, "导出/地图", this::exportMapImage),
             new MenuItemArg(4, "复制路径", this::copyPath),
         });
         
-        dummyTreeItem = new TreeItem<>();
-        tree_view.setRoot(dummyTreeItem);
+        dummyRoot = new TreeItem<>();
+        tree_view.setRoot(dummyRoot);
         tree_view.setShowRoot(false);
         tree_view.getSelectionModel().selectedItemProperty().addListener(this::onSelectItem);
         
@@ -154,12 +158,23 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         
         displayer = new DisplayOperator<>("cn.kizzzy.qqt.display", display_tab, IPackage.class);
         displayer.load();
+        
+        printArgs = new PrintArgs[]{
+            new PrintArgs(QqtImg.class, null, true),
+            new PrintArgs(QqtImgItem.class, new PrintArgs.Item[]{
+                new PrintArgs.Item("file", true),
+                new PrintArgs.Item("offset", true),
+                new PrintArgs.Item("size", true),
+                new PrintArgs.Item("offset_alpha", true),
+                new PrintArgs.Item("size_alpha", true),
+            }, false),
+        };
     }
     
     @Override
     public void stop() {
-        if (tree != null) {
-            tree.stop();
+        if (vfs != null) {
+            vfs.stop();
         }
         
         userVfs.save(CONFIG_PATH, config);
@@ -170,10 +185,22 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     protected void onSelectItem(Observable observable, TreeItem<Node> oldValue, TreeItem<Node> newValue) {
         if (newValue != null) {
             Node folder = newValue.getValue();
-            Leaf leaf = null;
+            if (folder == null) {
+                return;
+            }
             
             if (folder.leaf) {
-                leaf = (Leaf) folder;
+                Leaf leaf = (Leaf) folder;
+                
+                displayer.display(leaf.path);
+                
+                // print leaf information
+                if (leaf.name.endsWith(".img")) {
+                    QqtImg img = vfs.load(leaf.path, QqtImg.class);
+                    if (img != null) {
+                        LogHelper.debug(PrintHelper.ToString(img, printArgs));
+                    }
+                }
             } else {
                 newValue.getChildren().clear();
                 
@@ -184,27 +211,35 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 }
                 newValue.getChildren().sort(comparator);
             }
-            
-            if (leaf != null) {
-                printSelectedItem(leaf);
-                
-                displayer.display(leaf.path);
-            }
         }
     }
     
-    private void printSelectedItem(Leaf leaf) {
-        if (leaf.name.endsWith(".img")) {
-            QqtImg img = vfs.load(leaf.path, QqtImg.class);
-            if (img != null) {
-                LogHelper.info(PrintHelper.ToString(img, new PrintArgs[]{
-                    new PrintArgs(QqtImg.class, null, true),
-                    new PrintArgs(QqtImgItem.class, new PrintArgs.Item[]{
-                        new PrintArgs.Item("file", true),
-                    }, false),
-                }));
-            }
+    @FXML
+    protected void onFilter(ActionEvent event) {
+        final String regex = filterValue.getText();
+        if (StringHelper.isNullOrEmpty(regex)) {
+            return;
         }
+        
+        try {
+            Pattern.compile(regex);
+        } catch (Exception e) {
+            return;
+        }
+        
+        if (filterRoot == null) {
+            filterRoot = new TreeItem<>(new Node(0, "[Filter]"));
+            dummyRoot.getChildren().add(filterRoot);
+        }
+        
+        filterRoot.getChildren().clear();
+        
+        List<Node> list = vfs.listNodeByRegex(regex);
+        for (Node folder : list) {
+            filterRoot.getChildren().add(new TreeItem<>(folder));
+        }
+        
+        filterRoot.getChildren().sort(comparator);
     }
     
     private void openSetting(ActionEvent actionEvent) {
@@ -239,8 +274,11 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void loadFullImpl(File file) {
-        ITree rootTree = new FileTreeBuilder(file.getAbsolutePath()).build();
+        IdGenerator idGenerator = new IdGenerator();
+        
+        ITree rootTree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
+        rootVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         rootVfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
         rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
@@ -252,24 +290,15 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             return;
         }
         
-        ITree idxTree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
+        ITree idxTree = new IdxTreeBuilder(idxFile, idGenerator).build();
         IPackage idxVfs = new QqtPackage(file.getAbsolutePath(), idxTree);
         idxVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         idxVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
-        tree = new Forest(Arrays.asList(rootVfs, idxTree));
+        //ITree tree = new Forest(Arrays.asList(rootVfs, idxTree));
         vfs = new CombinePackage(rootVfs, idxVfs);
         
-        displayer.setContext(vfs);
-        
-        Platform.runLater(() -> {
-            dummyTreeItem.getChildren().clear();
-            
-            final List<Node> nodes = tree.listNode(0);
-            for (Node node : nodes) {
-                dummyTreeItem.getChildren().add(new TreeItem<>(node));
-            }
-        });
+        doAfterLoadVfs();
     }
     
     
@@ -300,28 +329,19 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void loadIdxImpl(File file) {
-        IPackage iPackage = new FilePackage(file.getParent());
-        iPackage.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
-        iPackage.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        iPackage.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
+        IPackage dataVfs = new FilePackage(file.getParent());
+        dataVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
         
-        IdxFile idxFile = iPackage.load(FileHelper.getName(file.getAbsolutePath()), IdxFile.class);
-        tree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
+        IdxFile idxFile = dataVfs.load(FileHelper.getName(file.getAbsolutePath()), IdxFile.class);
+        if (idxFile == null) {
+            return;
+        }
         
+        ITree tree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
         vfs = new QqtPackage(file.getParent(), tree);
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        vfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
-        displayer.setContext(vfs);
-        
-        Platform.runLater(() -> {
-            dummyTreeItem.getChildren().clear();
-            
-            final List<Node> nodes = tree.listNode(0);
-            for (Node node : nodes) {
-                dummyTreeItem.getChildren().add(new TreeItem<>(node));
-            }
-        });
+        doAfterLoadVfs();
     }
     
     private void loadFolder(ActionEvent actionEvent) {
@@ -349,24 +369,31 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void loadFolderImpl(File file) {
-        tree = new FileTreeBuilder(
-            file.getAbsolutePath(), new IdGenerator()
-        ).build();
-        
-        vfs = new FilePackage(file.getAbsolutePath());
+        ITree tree = new FileTreeBuilder(file.getAbsolutePath()).build();
+        vfs = new FilePackage(file.getAbsolutePath(), tree);
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
         vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
         vfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
+        vfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
         
+        doAfterLoadVfs();
+    }
+    
+    private void doAfterLoadVfs() {
         displayer.setContext(vfs);
         
         Platform.runLater(() -> {
-            dummyTreeItem.getChildren().clear();
+            dummyRoot.getChildren().clear();
             
-            final List<Node> nodes = tree.listNode(0);
+            final List<Node> nodes = vfs.listNode(0);
             for (Node node : nodes) {
-                dummyTreeItem.getChildren().add(new TreeItem<>(node));
+                dummyRoot.getChildren().add(new TreeItem<>(node));
+            }
+            
+            if (filterRoot != null) {
+                filterRoot.getChildren().clear();
+                dummyRoot.getChildren().add(filterRoot);
             }
         });
     }
@@ -396,11 +423,6 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void exportFile(boolean recursively) {
-        TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            return;
-        }
-        
         if (StringHelper.isNullOrEmpty(config.export_file_path) || !new File(config.export_file_path).exists()) {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("选择保存文件的文件夹");
@@ -411,18 +433,23 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             config.export_file_path = file.getAbsolutePath();
         }
         
-        IPackage target = null;
+        TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
         
-        List<Leaf> list = tree.listLeaf(selected.getValue(), recursively);
+        IPackage saveVfs = null;
+        
+        List<Leaf> list = vfs.listLeaf(selected.getValue(), recursively);
         for (Leaf leaf : list) {
             try {
-                if (target == null) {
+                if (saveVfs == null) {
                     String pkgName = leaf.pack.replace(".idx", "");
-                    target = new FilePackage(config.export_file_path + "/" + pkgName);
+                    saveVfs = new FilePackage(config.export_file_path + "/" + pkgName);
                 }
                 
                 byte[] data = vfs.load(leaf.path, byte[].class);
-                target.save(leaf.path, data);
+                saveVfs.save(leaf.path, data);
             } catch (Exception e) {
                 LogHelper.info(String.format("export file failed: %s", leaf.path), e);
             }
@@ -430,11 +457,6 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void exportImage(boolean recursively, boolean fixed) {
-        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            return;
-        }
-        
         if (StringHelper.isNullOrEmpty(config.export_image_path) || !new File(config.export_image_path).exists()) {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("选择保存图片的文件夹");
@@ -445,16 +467,20 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             config.export_image_path = file.getAbsolutePath();
         }
         
-        IPackage target = null;
-        Node node = selected.getValue();
+        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
         
-        List<Leaf> list = tree.listLeaf(selected.getValue(), recursively);
+        IPackage saveVfs = null;
+        
+        List<Leaf> list = vfs.listLeaf(selected.getValue(), recursively);
         for (Leaf leaf : list) {
             try {
-                if (target == null) {
+                if (saveVfs == null) {
                     String pkgName = leaf.pack.replace(".idx", "");
-                    target = new FilePackage(config.export_image_path + "/" + pkgName);
-                    target.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+                    saveVfs = new FilePackage(config.export_image_path + "/" + pkgName);
+                    saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
                 }
                 
                 if (leaf.path.contains(".img")) {
@@ -465,7 +491,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                                 BufferedImage image = QqtImgHelper.toImage(item, fixed);
                                 if (image != null) {
                                     String fullPath = leaf.path.replace(".img", String.format("-%02d.png", item.index));
-                                    target.save(fullPath, image);
+                                    saveVfs.save(fullPath, image);
                                 }
                             }
                         }
@@ -477,12 +503,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
     }
     
-    private void exportMapImage(ActionEvent event) {
-        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            return;
-        }
-        
+    private void exportByCustom(ActionEvent actionEvent) {
         if (StringHelper.isNullOrEmpty(config.export_image_path) || !new File(config.export_image_path).exists()) {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("选择保存图片的文件夹");
@@ -491,6 +512,47 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 return;
             }
             config.export_image_path = file.getAbsolutePath();
+        }
+        
+        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
+        }
+        
+        Node node = selected.getValue();
+        if (node.leaf && node.name.endsWith(".img")) {
+            Leaf leaf = (Leaf) node;
+            
+            String pkgName = leaf.pack.replace(".idx", "");
+            IPackage saveVfs = new FilePackage(config.export_image_path + "/" + pkgName);
+            saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+            
+            QqtImg img = vfs.load(leaf.path, QqtImg.class);
+            if (img != null) {
+                FixedExportView.Args args = new FixedExportView.Args();
+                args.path = leaf.path;
+                args.img = img;
+                args.loadVfs = vfs;
+                args.saveVfs = saveVfs;
+                stageHelper.show(stage, args, FixedExportView.class);
+            }
+        }
+    }
+    
+    private void exportMapImage(ActionEvent event) {
+        if (StringHelper.isNullOrEmpty(config.export_image_path) || !new File(config.export_image_path).exists()) {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("选择保存图片的文件夹");
+            File file = chooser.showDialog(stage);
+            if (file == null) {
+                return;
+            }
+            config.export_image_path = file.getAbsolutePath();
+        }
+        
+        final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return;
         }
         
         Node node = selected.getValue();
@@ -529,26 +591,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             
             }
             
-            IPackage target = new FilePackage(config.export_image_path + "/map");
-            target.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+            IPackage saveVfs = new FilePackage(config.export_image_path + "/map");
+            saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
             
-            target.save(leaf.path + ".png", image);
-            /*
-            DisplayTracks tracks = new DisplayTracks();
-            DisplayFrame frame = new DisplayFrame();
-            frame.x = 0;
-            frame.y = 0;
-            frame.width = image.getWidth();
-            frame.height = image.getHeight();
-            frame.image = image;
-            frame.extra = "";
-            
-            DisplayTrack track = new DisplayTrack();
-            track.frames.add(frame);
-            
-            tracks.tracks.add(track);
-            
-            display_tab.show(new DisplayAAA(DisplayType.SHOW_IMAGE, tracks));*/
+            saveVfs.save(leaf.path + ".png", image);
         }
     }
     
@@ -604,35 +650,5 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                     .setContents(selection, selection);
             }
         }
-    }
-    
-    private TreeItem<Node> filterRoot;
-    
-    @FXML
-    protected void onFilter(ActionEvent event) {
-        final String regex = filterValue.getText();
-        if (StringHelper.isNullOrEmpty(regex)) {
-            return;
-        }
-        
-        try {
-            Pattern.compile(regex);
-        } catch (Exception e) {
-            return;
-        }
-        
-        if (filterRoot == null) {
-            filterRoot = new TreeItem<>(new Node(0, "[Filter]"));
-            dummyTreeItem.getChildren().add(filterRoot);
-        }
-        
-        filterRoot.getChildren().clear();
-        
-        List<Node> list = tree.listNodeByRegex(regex);
-        for (Node folder : list) {
-            filterRoot.getChildren().add(new TreeItem<>(folder));
-        }
-        
-        filterRoot.getChildren().sort(comparator);
     }
 }
