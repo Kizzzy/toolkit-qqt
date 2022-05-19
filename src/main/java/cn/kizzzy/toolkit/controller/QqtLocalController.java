@@ -40,10 +40,7 @@ import javafx.beans.Observable;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -64,16 +61,7 @@ import java.util.regex.Pattern;
 abstract class QqtViewBase extends AbstractView {
     
     @FXML
-    protected ChoiceBox<String> show_choice;
-    
-    @FXML
     protected TextField filterValue;
-    
-    @FXML
-    protected CheckBox include_leaf;
-    
-    @FXML
-    protected CheckBox lock_tab;
     
     @FXML
     protected TreeView<Node> tree_view;
@@ -82,14 +70,11 @@ abstract class QqtViewBase extends AbstractView {
     protected DisplayTabView display_tab;
     
     @FXML
-    protected ProgressBar progress_bar;
-    
-    @FXML
     protected Label tips;
     
     @Override
     public String getName() {
-        return "QqtDisplayer";
+        return "Qqt-Display";
     }
 }
 
@@ -102,13 +87,14 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     private static final Comparator<TreeItem<Node>> comparator
         = Comparator.comparing(TreeItem<Node>::getValue, new NodeComparator());
     
+    private final StageHelper stageHelper
+        = new StageHelper();
+    
     private IPackage userVfs;
     private QqtConfig config;
     
-    private StageHelper stageHelper
-        = new StageHelper();
-    
-    private IPackage vfs;
+    private CombinePackage vfs;
+    private IdGenerator idGenerator;
     
     private DisplayOperator<IPackage> displayer;
     
@@ -152,12 +138,12 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         tree_view.setShowRoot(false);
         tree_view.getSelectionModel().selectedItemProperty().addListener(this::onSelectItem);
         
-        lock_tab.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            display_tab.setPin(newValue);
-        });
+        vfs = new CombinePackage();
+        idGenerator = new IdGenerator();
         
         displayer = new DisplayOperator<>("cn.kizzzy.qqt.display", display_tab, IPackage.class);
         displayer.load();
+        displayer.setContext(vfs);
         
         printArgs = new PrintArgs[]{
             new PrintArgs(QqtImg.class, null, true),
@@ -183,14 +169,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     protected void onSelectItem(Observable observable, TreeItem<Node> oldValue, TreeItem<Node> newValue) {
-        if (newValue != null) {
-            Node folder = newValue.getValue();
-            if (folder == null) {
-                return;
-            }
-            
-            if (folder.leaf) {
-                Leaf leaf = (Leaf) folder;
+        Node node = newValue == null ? null : newValue.getValue();
+        if (node != null) {
+            if (node.leaf) {
+                Leaf leaf = (Leaf) node;
                 
                 displayer.display(leaf.path);
                 
@@ -204,7 +186,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             } else {
                 newValue.getChildren().clear();
                 
-                Iterable<Node> list = folder.children.values();
+                Iterable<Node> list = vfs.listNode(node.id, false);
                 for (Node temp : list) {
                     TreeItem<Node> child = new TreeItem<>(temp);
                     newValue.getChildren().add(child);
@@ -228,7 +210,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
         
         if (filterRoot == null) {
-            filterRoot = new TreeItem<>(new Node(0, "[Filter]"));
+            filterRoot = new TreeItem<>(new Node(-1, "[Filter]"));
             dummyRoot.getChildren().add(filterRoot);
         }
         
@@ -259,6 +241,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 chooser.setInitialDirectory(lastFolder);
             }
         }
+        
         File file = chooser.showDialog(stage);
         if (file != null) {
             config.qqt_path = file.getAbsolutePath();
@@ -274,8 +257,6 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void loadFullImpl(File file) {
-        IdGenerator idGenerator = new IdGenerator();
-        
         ITree rootTree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
         rootVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
@@ -295,12 +276,10 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         idxVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         idxVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
         
-        //ITree tree = new Forest(Arrays.asList(rootVfs, idxTree));
-        vfs = new CombinePackage(rootVfs, idxVfs);
+        IPackage vfs = new CombinePackage(rootVfs, idxVfs);
         
-        doAfterLoadVfs();
+        doAfterLoadVfs(vfs);
     }
-    
     
     private void loadIdx(ActionEvent actionEvent) {
         FileChooser chooser = new FileChooser();
@@ -311,9 +290,11 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 chooser.setInitialDirectory(lastFolder);
             }
         }
+        
         chooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("IDX", "*.idx")
         );
+        
         File file = chooser.showOpenDialog(stage);
         if (file != null && file.getAbsolutePath().endsWith(".idx")) {
             config.data_path = file.getParent();
@@ -337,11 +318,11 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
             return;
         }
         
-        ITree tree = new IdxTreeBuilder(idxFile, new IdGenerator()).build();
-        vfs = new QqtPackage(file.getParent(), tree);
+        ITree tree = new IdxTreeBuilder(idxFile, idGenerator).build();
+        IPackage vfs = new QqtPackage(file.getParent(), tree);
         vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
         
-        doAfterLoadVfs();
+        doAfterLoadVfs(vfs);
     }
     
     private void loadFolder(ActionEvent actionEvent) {
@@ -354,6 +335,7 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
                 chooser.setInitialDirectory(lastFolder);
             }
         }
+        
         File file = chooser.showDialog(stage);
         if (file != null) {
             config.qqt_path = file.getAbsolutePath();
@@ -369,26 +351,27 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     }
     
     private void loadFolderImpl(File file) {
-        ITree tree = new FileTreeBuilder(file.getAbsolutePath()).build();
-        vfs = new FilePackage(file.getAbsolutePath(), tree);
-        vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        vfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
-        vfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        vfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
-        vfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
+        ITree rootTree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
+        IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
+        rootVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        rootVfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
+        rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
+        rootVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
+        rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
         
-        doAfterLoadVfs();
+        doAfterLoadVfs(rootVfs);
     }
     
-    private void doAfterLoadVfs() {
-        displayer.setContext(vfs);
+    private void doAfterLoadVfs(IPackage _vfs) {
+        vfs.addPackage(_vfs);
         
         Platform.runLater(() -> {
             dummyRoot.getChildren().clear();
             
-            final List<Node> nodes = vfs.listNode(0);
+            final List<Node> nodes = this.vfs.listNode(0, false);
             for (Node node : nodes) {
-                dummyRoot.getChildren().add(new TreeItem<>(node));
+                TreeItem<Node> child = new TreeItem<>(node);
+                dummyRoot.getChildren().add(child);
             }
             
             if (filterRoot != null) {
@@ -410,13 +393,13 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         openFolderImpl(config.export_image_path);
     }
     
-    private void openFolderImpl(String filePath) {
-        if (StringHelper.isNotNullAndEmpty(filePath)) {
+    private void openFolderImpl(String path) {
+        if (StringHelper.isNotNullAndEmpty(path)) {
             new Thread(() -> {
                 try {
-                    Desktop.getDesktop().open(new File(filePath));
+                    Desktop.getDesktop().open(new File(path));
                 } catch (Exception e) {
-                    LogHelper.error(String.format("open folder error, %s", filePath), e);
+                    LogHelper.error(String.format("open folder error, %s", path), e);
                 }
             }).start();
         }
@@ -434,13 +417,14 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
         
         TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
+        Node node = selected == null ? null : selected.getValue();
+        if (node == null) {
             return;
         }
         
         IPackage saveVfs = null;
         
-        List<Leaf> list = vfs.listLeaf(selected.getValue(), recursively);
+        List<Leaf> list = vfs.listLeaf(node, recursively);
         for (Leaf leaf : list) {
             try {
                 if (saveVfs == null) {
@@ -468,13 +452,14 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
         
         final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
+        Node node = selected == null ? null : selected.getValue();
+        if (node == null) {
             return;
         }
         
         IPackage saveVfs = null;
         
-        List<Leaf> list = vfs.listLeaf(selected.getValue(), recursively);
+        List<Leaf> list = vfs.listLeaf(node, recursively);
         for (Leaf leaf : list) {
             try {
                 if (saveVfs == null) {
@@ -515,11 +500,11 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
         }
         
         final TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected == null) {
+        Node node = selected == null ? null : selected.getValue();
+        if (node == null) {
             return;
         }
         
-        Node node = selected.getValue();
         if (node.leaf && node.name.endsWith(".img")) {
             Leaf leaf = (Leaf) node;
             
@@ -639,16 +624,13 @@ public class QqtLocalController extends QqtViewBase implements Initializable {
     
     protected void copyPath(ActionEvent actionEvent) {
         TreeItem<Node> selected = tree_view.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            Node node = selected.getValue();
-            if (node.leaf) {
-                Leaf leaf = (Leaf) node;
-                
-                String path = leaf.path.replace("\\", "\\\\");
-                StringSelection selection = new StringSelection(path);
-                java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
-                    .setContents(selection, selection);
-            }
+        Node node = selected == null ? null : selected.getValue();
+        if (node != null && node.leaf) {
+            Leaf leaf = (Leaf) node;
+            
+            String path = leaf.path.replace("\\", "\\\\");
+            StringSelection selection = new StringSelection(path);
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
         }
     }
 }

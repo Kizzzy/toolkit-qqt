@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import cn.kizzzy.javafx.display.DisplayTabView?>
-<?import javafx.collections.FXCollections?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.*?>
-<?import java.lang.String?>
 <?import java.net.URL?>
 <AnchorPane minHeight="600.0" minWidth="800.0" xmlns="http://javafx.com/javafx/10.0.2-internal"
             xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.kizzzy.toolkit.controller.QqtLocalController">
@@ -25,29 +20,6 @@
                             <children>
                                 <TextField fx:id="filterValue" HBox.hgrow="ALWAYS"/>
                                 <Button onAction="#onFilter" text="查找节点"/>
-                            </children>
-                        </HBox>
-                        <HBox alignment="CENTER_RIGHT" spacing="8.0" VBox.vgrow="NEVER">
-                            <children>
-                                <AnchorPane HBox.hgrow="ALWAYS">
-                                    <children>
-                                        <ProgressBar fx:id="progress_bar" progress="0.0" AnchorPane.bottomAnchor="0.0"
-                                                     AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-                                                     AnchorPane.topAnchor="0.0"/>
-                                    </children>
-                                </AnchorPane>
-                                <CheckBox fx:id="include_leaf" text="包含叶节点"/>
-                                <CheckBox fx:id="lock_tab" text="Tap锁定"/>
-                                <ChoiceBox fx:id="show_choice">
-                                    <items>
-                                        <FXCollections fx:factory="observableArrayList">
-                                            <String fx:value="NONE"/>
-                                            <String fx:value="OFFSET"/>
-                                            <String fx:value="CENTER"/>
-                                            <String fx:value="GSO"/>
-                                        </FXCollections>
-                                    </items>
-                                </ChoiceBox>
                             </children>
                         </HBox>
                     </children>
