@@ -2,9 +2,9 @@ package cn.kizzzy.qqt;
 
 public class QqtConfig {
     
-    public String qqt_path;
+    public String last_idx;
     
-    public String data_path;
+    public String last_root;
     
     public String export_image_path;
     
