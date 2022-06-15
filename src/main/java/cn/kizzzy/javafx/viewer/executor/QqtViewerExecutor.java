@@ -56,7 +56,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
     @Override
     public void initialize(ViewerExecutorArgs args) {
         IPackage userVfs = args.getUserVfs();
-        userVfs.getHandlerKvs().put(QqtConfig.class, new JsonFileHandler<>(QqtConfig.class));
+        userVfs.addHandler(QqtConfig.class, new JsonFileHandler<>(QqtConfig.class));
         
         config = userVfs.load(CONFIG_PATH, QqtConfig.class);
         config = config != null ? config : new QqtConfig();
@@ -155,12 +155,12 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         ITree rootTree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
-        rootVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        rootVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
-        rootVfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
-        rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        rootVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
-        rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
+        rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        rootVfs.addHandler(IdxFile.class, new IdxFileHandler());
+        rootVfs.addHandler(QqtImg.class, new QqtImgHandler());
+        rootVfs.addHandler(QqtMap.class, new QQtMapHandler());
+        rootVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
+        rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
         
         IdxFile idxFile = rootVfs.load("data/object.idx", IdxFile.class);
         if (idxFile == null) {
@@ -169,8 +169,8 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         ITree idxTree = new IdxTreeBuilder(idxFile, idGenerator).build();
         IPackage idxVfs = new QqtPackage(file.getAbsolutePath(), idxTree);
-        idxVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        idxVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
+        idxVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        idxVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
         
         IPackage fullVfs = new CombinePackage(rootVfs, idxVfs);
         
@@ -206,7 +206,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         IdGenerator idGenerator = args.getIdGenerator();
         
         IPackage dataVfs = new FilePackage(file.getParent());
-        dataVfs.getHandlerKvs().put(IdxFile.class, new IdxFileHandler());
+        dataVfs.addHandler(IdxFile.class, new IdxFileHandler());
         
         String path = FileHelper.getName(file.getAbsolutePath());
         IdxFile idxFile = dataVfs.load(path, IdxFile.class);
@@ -216,7 +216,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         ITree tree = new IdxTreeBuilder(idxFile, idGenerator).build();
         IPackage vfs = new QqtPackage(file.getParent(), tree);
-        vfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        vfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
         
         args.getObservable().setValue(new ViewerExecutorBinder(vfs, this));
     }
@@ -247,11 +247,11 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         ITree tree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), tree);
-        rootVfs.getHandlerKvs().put(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        rootVfs.getHandlerKvs().put(QqtImg.class, new QqtImgHandler());
-        rootVfs.getHandlerKvs().put(QqtMap.class, new QQtMapHandler());
-        rootVfs.getHandlerKvs().put(QqtAvatar.class, new QqtAvatarHandler());
-        rootVfs.getHandlerKvs().put(MapElemProp.class, new MapElemPropHandler());
+        rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        rootVfs.addHandler(QqtImg.class, new QqtImgHandler());
+        rootVfs.addHandler(QqtMap.class, new QQtMapHandler());
+        rootVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
+        rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
         
         args.getObservable().setValue(new ViewerExecutorBinder(rootVfs, this));
     }
@@ -332,7 +332,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
                 if (saveVfs == null) {
                     String pkgName = leaf.pack.replace(".idx", "");
                     saveVfs = new FilePackage(config.export_image_path + "/" + pkgName);
-                    saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+                    saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
                 }
                 
                 if (leaf.path.contains(".img")) {
@@ -379,7 +379,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             
             String pkgName = leaf.pack.replace(".idx", "");
             IPackage saveVfs = new FilePackage(config.export_image_path + "/" + pkgName);
-            saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+            saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
             
             QqtImg img = vfs.load(leaf.path, QqtImg.class);
             if (img != null) {
@@ -447,7 +447,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             }
             
             IPackage saveVfs = new FilePackage(config.export_image_path + "/map");
-            saveVfs.getHandlerKvs().put(BufferedImage.class, new BufferedImageHandler());
+            saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
             
             saveVfs.save(leaf.path + ".png", image);
         }
