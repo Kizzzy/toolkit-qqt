@@ -7,8 +7,7 @@ import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.javafx.display.image.DisplayFrame;
 import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
-import cn.kizzzy.qqt.QqtImg;
-import cn.kizzzy.qqt.QqtImgItem;
+import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 
@@ -25,14 +24,14 @@ public class ImgDisplay extends Display<IPackage> {
     
     @Override
     public DisplayAAA load() {
-        QqtImg img = context.load(path, QqtImg.class);
+        ImgFile img = context.load(path, ImgFile.class);
         if (img == null) {
             return null;
         }
         
         DisplayTrack track = new DisplayTrack();
         int i = 0;
-        for (QqtImgItem item : img.items) {
+        for (ImgFile.Frame item : img.frames) {
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;

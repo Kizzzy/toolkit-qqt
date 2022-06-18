@@ -12,13 +12,21 @@ import cn.kizzzy.javafx.display.DisplayTabView;
 import cn.kizzzy.javafx.viewer.ViewerExecutorArgs;
 import cn.kizzzy.javafx.viewer.ViewerExecutorAttribute;
 import cn.kizzzy.javafx.viewer.ViewerExecutorBinder;
-import cn.kizzzy.qqt.*;
+import cn.kizzzy.qqt.AvatarFile;
+import cn.kizzzy.qqt.GameMode;
+import cn.kizzzy.qqt.ImgFile;
+import cn.kizzzy.qqt.MapCity;
+import cn.kizzzy.qqt.MapElemDataProvider;
+import cn.kizzzy.qqt.MapElemProp;
+import cn.kizzzy.qqt.MapFile;
+import cn.kizzzy.qqt.QqtConfig;
+import cn.kizzzy.qqt.QqtElementXyer;
 import cn.kizzzy.qqt.custom.FixedExportView;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
+import cn.kizzzy.qqt.vfs.handler.AvatarFileHandler;
+import cn.kizzzy.qqt.vfs.handler.ImgFileHandler;
 import cn.kizzzy.qqt.vfs.handler.MapElemPropHandler;
-import cn.kizzzy.qqt.vfs.handler.QQtMapHandler;
-import cn.kizzzy.qqt.vfs.handler.QqtAvatarHandler;
-import cn.kizzzy.qqt.vfs.handler.QqtImgHandler;
+import cn.kizzzy.qqt.vfs.handler.MapFileHandler;
 import cn.kizzzy.qqt.vfs.pack.QqtPackage;
 import cn.kizzzy.tencent.IdxFile;
 import cn.kizzzy.tencent.vfs.handler.IdxFileHandler;
@@ -65,8 +73,8 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         stageHelper.addFactory(FixedExportView::new, FixedExportView.class);
         
         printArgs = new PrintArgs[]{
-            new PrintArgs(QqtImg.class, null, true),
-            new PrintArgs(QqtImgItem.class, new PrintArgs.Item[]{
+            new PrintArgs(ImgFile.class, null, true),
+            new PrintArgs(ImgFile.Frame.class, new PrintArgs.Item[]{
                 new PrintArgs.Item("file", true),
                 new PrintArgs.Item("offset", true),
                 new PrintArgs.Item("size", true),
@@ -96,7 +104,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         // print leaf information
         IPackage vfs = args.getVfs();
         if (leaf.name.endsWith(".img")) {
-            QqtImg img = vfs.load(leaf.path, QqtImg.class);
+            ImgFile img = vfs.load(leaf.path, ImgFile.class);
             if (img != null) {
                 LogHelper.debug(PrintHelper.ToString(img, printArgs));
             }
@@ -157,9 +165,9 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), rootTree);
         rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
         rootVfs.addHandler(IdxFile.class, new IdxFileHandler());
-        rootVfs.addHandler(QqtImg.class, new QqtImgHandler());
-        rootVfs.addHandler(QqtMap.class, new QQtMapHandler());
-        rootVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
+        rootVfs.addHandler(ImgFile.class, new ImgFileHandler());
+        rootVfs.addHandler(MapFile.class, new MapFileHandler());
+        rootVfs.addHandler(AvatarFile.class, new AvatarFileHandler());
         rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
         
         IdxFile idxFile = rootVfs.load("data/object.idx", IdxFile.class);
@@ -170,7 +178,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         ITree idxTree = new IdxTreeBuilder(idxFile, idGenerator).build();
         IPackage idxVfs = new QqtPackage(file.getAbsolutePath(), idxTree);
         idxVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        idxVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
+        idxVfs.addHandler(AvatarFile.class, new AvatarFileHandler());
         
         IPackage fullVfs = new CombinePackage(rootVfs, idxVfs);
         
@@ -248,9 +256,9 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         ITree tree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
         IPackage rootVfs = new FilePackage(file.getAbsolutePath(), tree);
         rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        rootVfs.addHandler(QqtImg.class, new QqtImgHandler());
-        rootVfs.addHandler(QqtMap.class, new QQtMapHandler());
-        rootVfs.addHandler(QqtAvatar.class, new QqtAvatarHandler());
+        rootVfs.addHandler(ImgFile.class, new ImgFileHandler());
+        rootVfs.addHandler(MapFile.class, new MapFileHandler());
+        rootVfs.addHandler(AvatarFile.class, new AvatarFileHandler());
         rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
         
         args.getObservable().setValue(new ViewerExecutorBinder(rootVfs, this));
@@ -336,9 +344,9 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
                 }
                 
                 if (leaf.path.contains(".img")) {
-                    QqtImg img = vfs.load(leaf.path, QqtImg.class);
+                    ImgFile img = vfs.load(leaf.path, ImgFile.class);
                     if (img != null) {
-                        for (QqtImgItem item : img.items) {
+                        for (ImgFile.Frame item : img.frames) {
                             if (item != null) {
                                 BufferedImage image = QqtImgHelper.toImage(item, fixed);
                                 if (image != null) {
@@ -381,7 +389,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             IPackage saveVfs = new FilePackage(config.export_image_path + "/" + pkgName);
             saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
             
-            QqtImg img = vfs.load(leaf.path, QqtImg.class);
+            ImgFile img = vfs.load(leaf.path, ImgFile.class);
             if (img != null) {
                 FixedExportView.Args _args = new FixedExportView.Args();
                 _args.path = leaf.path;
@@ -413,7 +421,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         if (selected.leaf && selected.name.endsWith(".map")) {
             Leaf leaf = (Leaf) selected;
-            QqtMap map = vfs.load(leaf.path, QqtMap.class);
+            MapFile map = vfs.load(leaf.path, MapFile.class);
             if (map == null) {
                 return;
             }
@@ -424,10 +432,10 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             BufferedImage image = new BufferedImage(map.width * 40 + 160, map.height * 40 + 160, BufferedImage.TYPE_INT_ARGB);
             
             for (int i = 2; i >= 0; --i) {
-                QqtMap.Layer layer = map.layers[i];
+                MapFile.Layer layer = map.layers[i];
                 for (int y = 0; y < map.height; ++y) {
                     for (int x = 0; x < map.width; ++x) {
-                        QqtMap.Element element = layer.elements[y][x];
+                        MapFile.Element element = layer.elements[y][x];
                         processElement(args.getVfs(), element, x, y, provider, image);
                     }
                 }
@@ -435,10 +443,10 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             
             try {
                 GameMode mode = GameMode.valueOf(map.gameMode);
-                QqtMap.Points points = map.points[3];
+                MapFile.Points points = map.points[3];
                 for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
-                    QqtMap.Element element = mode.getSpecials()[i];
-                    QqtMap.Point point = points.points[i];
+                    MapFile.Element element = mode.getSpecials()[i];
+                    MapFile.Point point = points.points[i];
                     
                     processElement(args.getVfs(), element, point.x, point.y, provider, image);
                 }
@@ -453,19 +461,19 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         }
     }
     
-    private void processElement(IPackage vfs, QqtMap.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) {
+    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) {
         if (element.city() <= 0 || element.id() <= 0) {
             return;
         }
         
         MapCity city = MapCity.valueOf(element.city());
         String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
-        QqtImg img = vfs.load(path, QqtImg.class);
+        ImgFile img = vfs.load(path, ImgFile.class);
         if (img == null) {
             return;
         }
         
-        QqtImgItem item = img.items[0];
+        ImgFile.Frame item = img.frames[0];
         BufferedImage image = QqtImgHelper.toImage(item);
         if (image == null) {
             return;

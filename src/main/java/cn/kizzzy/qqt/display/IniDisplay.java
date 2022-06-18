@@ -8,9 +8,8 @@ import cn.kizzzy.javafx.display.DisplayType;
 import cn.kizzzy.javafx.display.image.DisplayFrame;
 import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
-import cn.kizzzy.qqt.QqtAvatar;
-import cn.kizzzy.qqt.QqtImg;
-import cn.kizzzy.qqt.QqtImgItem;
+import cn.kizzzy.qqt.AvatarFile;
+import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 
@@ -53,25 +52,25 @@ public class IniDisplay extends Display<IPackage> {
         
         String action = "walk";
         
-        QqtAvatar zIndex = context.load("object/player/player_z.ini", QqtAvatar.class);
+        AvatarFile zIndex = context.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
             LogHelper.info("load avatar z-index failed");
             return null;
         }
         
-        QqtAvatar.Avatar wIndex = zIndex.avatarKvs.get(action);
+        AvatarFile.Avatar wIndex = zIndex.avatarKvs.get(action);
         if (wIndex == null) {
             LogHelper.info("z-index of this action is not found");
             return null;
         }
         
-        QqtAvatar qqtAvatar = context.load(path, QqtAvatar.class);
+        AvatarFile qqtAvatar = context.load(path, AvatarFile.class);
         if (qqtAvatar == null) {
             LogHelper.info("load avatar failed");
             return null;
         }
         
-        QqtAvatar.Avatar avatar = qqtAvatar.avatarKvs.get(action);
+        AvatarFile.Avatar avatar = qqtAvatar.avatarKvs.get(action);
         if (avatar == null) {
             LogHelper.info("avatar of this action is not found");
             return null;
@@ -83,7 +82,7 @@ public class IniDisplay extends Display<IPackage> {
         int i = 0;
         //j = 0;
         
-        for (QqtAvatar.Element element : avatar.elementKvs.values()) {
+        for (AvatarFile.Element element : avatar.elementKvs.values()) {
             float time = 167 * (i++);
             processElement(element, action, time, tracks, wIndex, false);
             processElement(element, action, time, tracks, wIndex, true);
@@ -92,9 +91,9 @@ public class IniDisplay extends Display<IPackage> {
         return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
     }
     
-    private void processElement(QqtAvatar.Element element, String action, float time, DisplayTracks tracks, QqtAvatar.Avatar zAvatar, boolean mixed) {
+    private void processElement(AvatarFile.Element element, String action, float time, DisplayTracks tracks, AvatarFile.Avatar zAvatar, boolean mixed) {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
-        QqtImg img = context.load(fullPath, QqtImg.class);
+        ImgFile img = context.load(fullPath, ImgFile.class);
         if (img == null) {
             return;
         }
@@ -102,13 +101,13 @@ public class IniDisplay extends Display<IPackage> {
         DisplayTrack track = new DisplayTrack();
         
         for (int i = 0, n = img.count; i < n; ++i) {
-            QqtImgItem item = img.items[i];
+            ImgFile.Frame item = img.frames[i];
             
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
                 int dir = i / (img.count / img.planes);
                 String key = String.format("%s_z_%s", element.name, DIRS[dir]);
-                QqtAvatar.Element zElement = zAvatar.elementKvs.get(key);
+                AvatarFile.Element zElement = zAvatar.elementKvs.get(key);
                 
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;

@@ -9,9 +9,8 @@ import cn.kizzzy.javafx.display.image.DisplayFrame;
 import cn.kizzzy.javafx.display.image.DisplayTrack;
 import cn.kizzzy.javafx.display.image.DisplayTracks;
 import cn.kizzzy.javafx.display.image.ImageDisplayView;
-import cn.kizzzy.qqt.QqtAvatar;
-import cn.kizzzy.qqt.QqtImg;
-import cn.kizzzy.qqt.QqtImgItem;
+import cn.kizzzy.qqt.AvatarFile;
+import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 import javafx.beans.value.ChangeListener;
@@ -99,7 +98,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     
     public static class Args {
         public String path;
-        public QqtImg img;
+        public ImgFile img;
         public IPackage loadVfs;
         public IPackage saveVfs;
     }
@@ -154,7 +153,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     private void onExport(ActionEvent actionEvent) {
         Rect rect = getInput();
         
-        for (QqtImgItem item : args.img.items) {
+        for (ImgFile.Frame item : args.img.frames) {
             BufferedImage image = QqtImgHelper.toImageByCustom(item, rect.x, rect.y, rect.width, rect.height);
             if (image != null) {
                 String fullPath = args.path.replace(".img", String.format("-%02d.png", item.index));
@@ -186,25 +185,25 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     }
     
     private DisplayTracks preloadImpl(IPackage vfs, String elementName, String elementId, String action) {
-        QqtAvatar zIndex = vfs.load("object/player/player_z.ini", QqtAvatar.class);
+        AvatarFile zIndex = vfs.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
             LogHelper.info("load avatar z-index failed");
             return null;
         }
         
-        QqtAvatar.Avatar wIndex = zIndex.avatarKvs.get(action);
+        AvatarFile.Avatar wIndex = zIndex.avatarKvs.get(action);
         if (wIndex == null) {
             LogHelper.info("z-index of this action is not found");
             return null;
         }
         
-        QqtAvatar qqtAvatar = vfs.load("object/player/player2.ini", QqtAvatar.class);
+        AvatarFile qqtAvatar = vfs.load("object/player/player2.ini", AvatarFile.class);
         if (qqtAvatar == null) {
             LogHelper.info("load avatar failed");
             return null;
         }
         
-        QqtAvatar.Avatar avatar = qqtAvatar.avatarKvs.get(action);
+        AvatarFile.Avatar avatar = qqtAvatar.avatarKvs.get(action);
         if (avatar == null) {
             LogHelper.info("avatar of this action is not found");
             return null;
@@ -212,7 +211,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         
         int i = 0;
         DisplayTracks tracks = new DisplayTracks();
-        for (QqtAvatar.Element element : avatar.elementKvs.values()) {
+        for (AvatarFile.Element element : avatar.elementKvs.values()) {
             boolean target = Objects.equals(element.name, elementName);
             if (target) {
                 element.id = elementId;
@@ -224,9 +223,9 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         return tracks;
     }
     
-    private void processElement(QqtAvatar.Element element, String action, float time, DisplayTracks tracks, QqtAvatar.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) {
+    private void processElement(AvatarFile.Element element, String action, float time, DisplayTracks tracks, AvatarFile.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
-        QqtImg img = vfs.load(fullPath, QqtImg.class);
+        ImgFile img = vfs.load(fullPath, ImgFile.class);
         if (img == null) {
             return;
         }
@@ -234,13 +233,13 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         DisplayTrack track = new DisplayTrack();
         
         for (int i = 0, n = img.count; i < n; ++i) {
-            QqtImgItem item = img.items[i];
+            ImgFile.Frame item = img.frames[i];
             
             BufferedImage image = QqtImgHelper.toImage(item);
             if (image != null) {
                 int dir = i / (img.count / img.planes);
                 String key = String.format("%s_z_%s", element.name, DIRS[dir]);
-                QqtAvatar.Element zElement = zAvatar.elementKvs.get(key);
+                AvatarFile.Element zElement = zAvatar.elementKvs.get(key);
                 
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
