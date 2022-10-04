@@ -42,6 +42,7 @@ import cn.kizzzy.vfs.tree.FileTreeBuilder;
 import cn.kizzzy.vfs.tree.IdGenerator;
 import cn.kizzzy.vfs.tree.Leaf;
 import cn.kizzzy.vfs.tree.Node;
+import javafx.scene.control.TreeItem;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -112,13 +113,14 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
     }
     
     @Override
-    public Iterable<MenuItemArg> showContext(ViewerExecutorArgs args, final Node selected) {
+    public Iterable<MenuItemArg> showContext(ViewerExecutorArgs args, TreeItem<Node> item, Node selected) {
         List<MenuItemArg> list = new ArrayList<>();
-        list.add(new MenuItemArg(1, "加载/Full(QQT)", event -> loadFull(args)));
-        list.add(new MenuItemArg(1, "加载/IDX(QQT)", event -> loadFile(args)));
         list.add(new MenuItemArg(1, "加载/目录(QQT)", event -> loadFolder(args)));
         if (selected != null) {
             list.add(new MenuItemArg(0, "设置", event -> openSetting(args, config)));
+            list.add(new MenuItemArg(1, "加载/IDX(QQT)", event -> loadIdxFile(args)));
+            list.add(new MenuItemArg(1, "加载/IDX-2(QQT)", event -> loadIdxFile(args, item, selected)));
+            list.add(new MenuItemArg(1, "加载/Full(QQT)", event -> loadFull(args)));
             list.add(new MenuItemArg(2, "打开/根目录", event -> openFolderQqtRoot(args)));
             list.add(new MenuItemArg(2, "打开/文件目录", event -> openFolderExportFile(args)));
             list.add(new MenuItemArg(2, "打开/图片目录", event -> openFolderExportImage(args)));
@@ -135,6 +137,111 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             }
         }
         return list;
+    }
+    
+    private void loadFolder(ViewerExecutorArgs args) {
+        Stage stage = args.getStage();
+        
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("选择QQ堂根目录");
+        
+        if (StringHelper.isNotNullAndEmpty(config.last_root)) {
+            File lastFolder = new File(config.last_root);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
+        }
+        
+        File file = chooser.showDialog(stage);
+        if (file != null) {
+            config.last_root = file.getAbsolutePath();
+            
+            loadFolderImpl(args, file);
+        }
+    }
+    
+    private void loadFolderImpl(ViewerExecutorArgs args, File file) {
+        IdGenerator idGenerator = args.getIdGenerator();
+        
+        ITree tree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
+        IPackage rootVfs = new FilePackage(file.getAbsolutePath(), tree);
+        rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        rootVfs.addHandler(IdxFile.class, new IdxFileHandler());
+        rootVfs.addHandler(ImgFile.class, new ImgFileHandler());
+        rootVfs.addHandler(MapFile.class, new MapFileHandler());
+        rootVfs.addHandler(AvatarFile.class, new AvatarFileHandler());
+        rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
+        
+        args.getObservable().setValue(new ViewerExecutorBinder(rootVfs, this));
+    }
+    
+    private void loadIdxFile(ViewerExecutorArgs args) {
+        Stage stage = args.getStage();
+        
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("选择idx文件");
+        if (StringHelper.isNotNullAndEmpty(config.last_idx)) {
+            File lastFolder = new File(config.last_idx);
+            if (lastFolder.exists()) {
+                chooser.setInitialDirectory(lastFolder);
+            }
+        }
+        
+        chooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("IDX", "*.idx"),
+            new FileChooser.ExtensionFilter("ALL", "*.*")
+        );
+        
+        File file = chooser.showOpenDialog(stage);
+        if (file != null && file.getAbsolutePath().endsWith(".idx")) {
+            config.last_idx = file.getParent();
+            
+            loadIdxImpl(args, file);
+        }
+    }
+    
+    private void loadIdxImpl(ViewerExecutorArgs args, File file) {
+        IdGenerator idGenerator = args.getIdGenerator();
+        
+        IPackage dataVfs = new FilePackage(file.getParent());
+        dataVfs.addHandler(IdxFile.class, new IdxFileHandler());
+        
+        String path = FileHelper.getName(file.getAbsolutePath());
+        IdxFile idxFile = dataVfs.load(path, IdxFile.class);
+        if (idxFile == null) {
+            return;
+        }
+        
+        ITree tree = new IdxTreeBuilder(idxFile, idGenerator).build();
+        IPackage vfs = new QqtPackage(file.getParent(), tree);
+        vfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        
+        args.getObservable().setValue(new ViewerExecutorBinder(vfs, this));
+    }
+    
+    private void loadIdxFile(ViewerExecutorArgs args, TreeItem<Node> item, Node selected) {
+        if (selected.leaf) {
+            Leaf leaf = (Leaf) selected;
+            if (leaf.path.endsWith(".idx")) {
+                loadIdxFileImpl(args, item, leaf);
+            }
+        }
+    }
+    
+    private void loadIdxFileImpl(ViewerExecutorArgs args, TreeItem<Node> item, Leaf leaf) {
+        IPackage vfs = args.getVfs();
+        IdGenerator idGenerator = args.getIdGenerator();
+        
+        IdxFile idxFile = vfs.load(leaf.path, IdxFile.class);
+        if (idxFile == null) {
+            return;
+        }
+        
+        ITree tree = new IdxTreeBuilder(idxFile, idGenerator).build();
+        IPackage qqtVfs = new QqtPackage(tree, vfs);
+        qqtVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
+        
+        args.getObservable().setValue(new ViewerExecutorBinder(qqtVfs, this, item));
     }
     
     private void loadFull(ViewerExecutorArgs args) {
@@ -183,85 +290,6 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         IPackage fullVfs = new CombinePackage(rootVfs, idxVfs);
         
         args.getObservable().setValue(new ViewerExecutorBinder(fullVfs, this));
-    }
-    
-    private void loadFile(ViewerExecutorArgs args) {
-        Stage stage = args.getStage();
-        
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("选择idx文件");
-        if (StringHelper.isNotNullAndEmpty(config.last_idx)) {
-            File lastFolder = new File(config.last_idx);
-            if (lastFolder.exists()) {
-                chooser.setInitialDirectory(lastFolder);
-            }
-        }
-        
-        chooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("IDX", "*.idx"),
-            new FileChooser.ExtensionFilter("ALL", "*.*")
-        );
-        
-        File file = chooser.showOpenDialog(stage);
-        if (file != null && file.getAbsolutePath().endsWith(".idx")) {
-            config.last_idx = file.getParent();
-            
-            loadIdxImpl(args, file);
-        }
-    }
-    
-    private void loadIdxImpl(ViewerExecutorArgs args, File file) {
-        IdGenerator idGenerator = args.getIdGenerator();
-        
-        IPackage dataVfs = new FilePackage(file.getParent());
-        dataVfs.addHandler(IdxFile.class, new IdxFileHandler());
-        
-        String path = FileHelper.getName(file.getAbsolutePath());
-        IdxFile idxFile = dataVfs.load(path, IdxFile.class);
-        if (idxFile == null) {
-            return;
-        }
-        
-        ITree tree = new IdxTreeBuilder(idxFile, idGenerator).build();
-        IPackage vfs = new QqtPackage(file.getParent(), tree);
-        vfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        
-        args.getObservable().setValue(new ViewerExecutorBinder(vfs, this));
-    }
-    
-    private void loadFolder(ViewerExecutorArgs args) {
-        Stage stage = args.getStage();
-        
-        DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("选择QQ堂根目录");
-        
-        if (StringHelper.isNotNullAndEmpty(config.last_root)) {
-            File lastFolder = new File(config.last_root);
-            if (lastFolder.exists()) {
-                chooser.setInitialDirectory(lastFolder);
-            }
-        }
-        
-        File file = chooser.showDialog(stage);
-        if (file != null) {
-            config.last_root = file.getAbsolutePath();
-            
-            loadFolderImpl(args, file);
-        }
-    }
-    
-    private void loadFolderImpl(ViewerExecutorArgs args, File file) {
-        IdGenerator idGenerator = args.getIdGenerator();
-        
-        ITree tree = new FileTreeBuilder(file.getAbsolutePath(), idGenerator).build();
-        IPackage rootVfs = new FilePackage(file.getAbsolutePath(), tree);
-        rootVfs.addHandler(String.class, new StringFileHandler(Charset.forName("GB2312")));
-        rootVfs.addHandler(ImgFile.class, new ImgFileHandler());
-        rootVfs.addHandler(MapFile.class, new MapFileHandler());
-        rootVfs.addHandler(AvatarFile.class, new AvatarFileHandler());
-        rootVfs.addHandler(MapElemProp.class, new MapElemPropHandler());
-        
-        args.getObservable().setValue(new ViewerExecutorBinder(rootVfs, this));
     }
     
     private void openFolderQqtRoot(ViewerExecutorArgs args) {
