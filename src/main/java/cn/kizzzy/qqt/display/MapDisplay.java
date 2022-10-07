@@ -78,30 +78,32 @@ public class MapDisplay extends Display<IPackage> {
             return;
         }
         
-        ImgFile.Frame item = img.frames[0];
-        BufferedImage image = QqtImgHelper.toImage(item);
-        if (image == null) {
-            return;
-        }
-        
-        MapElemProp.Element elementData = provider.getElementData(element.value);
-        if (elementData == null) {
-            return;
-        }
-        
-        QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
-        
-        DisplayFrame frame = new DisplayFrame();
-        frame.x = 200 + x * 40 - elementData.x + point.x;
-        frame.y = 200 + y * 40 - elementData.y + point.y;
-        frame.width = image.getWidth();
-        frame.height = image.getHeight();
-        frame.image = image;
-        frame.extra = "";
-        
         DisplayTrack track = new DisplayTrack();
-        track.frames.add(frame);
-        
         tracks.tracks.add(track);
+        
+        for (ImgFile.Frame item : img.frames) {
+            BufferedImage image = QqtImgHelper.toImage(item);
+            if (image == null) {
+                return;
+            }
+            
+            MapElemProp.Element elementData = provider.getElementData(element.value);
+            if (elementData == null) {
+                return;
+            }
+            
+            QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
+            
+            DisplayFrame frame = new DisplayFrame();
+            frame.x = x * 40 - elementData.x + point.x;
+            frame.y = y * 40 - elementData.y + point.y;
+            frame.width = image.getWidth();
+            frame.height = image.getHeight();
+            frame.image = image;
+            frame.time = 167;
+            frame.extra = "";
+            
+            track.frames.add(frame);
+        }
     }
 }

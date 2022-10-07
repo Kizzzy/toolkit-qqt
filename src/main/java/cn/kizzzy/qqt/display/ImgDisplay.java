@@ -38,12 +38,12 @@ public class ImgDisplay extends Display<IPackage> {
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
                 DisplayFrame frame = new DisplayFrame();
-                frame.x = 200 + offsetX;
-                frame.y = 200 + offsetY;
+                frame.x = offsetX;
+                frame.y = offsetY;
                 frame.width = item.width;
                 frame.height = item.height;
                 frame.image = image;
-                frame.time = 167 * i;
+                frame.time = 167;
                 frame.extra = String.format("%02d/%02d", i + 1, img.count);
                 
                 track.frames.add(frame);

@@ -3,7 +3,6 @@ package cn.kizzzy.javafx.viewer.executor;
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.helper.PrintArgs;
-import cn.kizzzy.helper.PrintHelper;
 import cn.kizzzy.helper.StringHelper;
 import cn.kizzzy.image.vfs.handler.BufferedImageHandler;
 import cn.kizzzy.javafx.StageHelper;
@@ -87,6 +86,8 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
     
     @Override
     public void stop(ViewerExecutorArgs args) {
+        super.stop(args);
+        
         IPackage userVfs = args.getUserVfs();
         userVfs.save(CONFIG_PATH, config);
     }
@@ -107,7 +108,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         if (leaf.name.endsWith(".img")) {
             ImgFile img = vfs.load(leaf.path, ImgFile.class);
             if (img != null) {
-                LogHelper.debug(PrintHelper.ToString(img, printArgs));
+                //LogHelper.debug(PrintHelper.ToString(img, printArgs));
             }
         }
     }
