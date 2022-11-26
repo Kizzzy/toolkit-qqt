@@ -1,24 +1,23 @@
 package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.helper.LogHelper;
-import cn.kizzzy.javafx.display.Display;
-import cn.kizzzy.javafx.display.DisplayAAA;
-import cn.kizzzy.javafx.display.DisplayAttribute;
-import cn.kizzzy.javafx.display.DisplayType;
-import cn.kizzzy.javafx.display.image.DisplayFrame;
-import cn.kizzzy.javafx.display.image.DisplayTrack;
-import cn.kizzzy.javafx.display.image.DisplayTracks;
+import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
+import cn.kizzzy.javafx.display.image.Frame;
+import cn.kizzzy.javafx.display.image.ImageArg;
+import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
+import cn.kizzzy.javafx.display.image.Track;
 import cn.kizzzy.qqt.AvatarFile;
 import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
+import cn.kizzzy.vfs.tree.Leaf;
 
 import java.awt.image.BufferedImage;
 
-@DisplayAttribute(suffix = {
+@DisplayLoaderAttribute(suffix = {
     "ini",
 }, priority = 999)
-public class IniDisplay extends Display<IPackage> {
+public class IniDisplay implements ImageDisplayLoader {
     
     private static final String[] COLORS = new String[]{
         "#d34a37ff",
@@ -38,21 +37,17 @@ public class IniDisplay extends Display<IPackage> {
         "down",
     };
     
-    public IniDisplay(IPackage vfs, String path) {
-        super(vfs, path);
-    }
-    
     //int j = 0;
     
     @Override
-    public DisplayAAA load() {
-        if (!path.contains("player") || !path.endsWith(".ini")) {
+    public ImageArg loadImage(IPackage vfs, Leaf leaf) throws Exception {
+        if (!leaf.path.contains("player") || !leaf.path.endsWith(".ini")) {
             return null;
         }
         
         String action = "walk";
         
-        AvatarFile zIndex = context.load("object/player/player_z.ini", AvatarFile.class);
+        AvatarFile zIndex = vfs.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
             LogHelper.info("load avatar z-index failed");
             return null;
@@ -64,7 +59,7 @@ public class IniDisplay extends Display<IPackage> {
             return null;
         }
         
-        AvatarFile qqtAvatar = context.load(path, AvatarFile.class);
+        AvatarFile qqtAvatar = vfs.load(leaf.path, AvatarFile.class);
         if (qqtAvatar == null) {
             LogHelper.info("load avatar failed");
             return null;
@@ -76,29 +71,29 @@ public class IniDisplay extends Display<IPackage> {
             return null;
         }
         
-        DisplayTracks tracks = new DisplayTracks();
-        tracks.colors = COLORS;
+        ImageArg arg = new ImageArg();
+        arg.colors = COLORS;
         
         int i = 0;
         //j = 0;
         
         for (AvatarFile.Element element : avatar.elementKvs.values()) {
             float time = 167 * (i++);
-            processElement(element, action, time, tracks, wIndex, false);
-            processElement(element, action, time, tracks, wIndex, true);
+            processElement(vfs, element, action, time, arg, wIndex, false);
+            processElement(vfs, element, action, time, arg, wIndex, true);
         }
         
-        return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
+        return arg;
     }
     
-    private void processElement(AvatarFile.Element element, String action, float time, DisplayTracks tracks, AvatarFile.Avatar zAvatar, boolean mixed) {
+    private void processElement(IPackage vfs, AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed) {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
-        ImgFile img = context.load(fullPath, ImgFile.class);
+        ImgFile img = vfs.load(fullPath, ImgFile.class);
         if (img == null) {
             return;
         }
         
-        DisplayTrack track = new DisplayTrack();
+        Track track = new Track();
         
         for (int i = 0, n = img.count; i < n; ++i) {
             ImgFile.Frame item = img.frames[i];
@@ -112,7 +107,7 @@ public class IniDisplay extends Display<IPackage> {
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
-                DisplayFrame frame = new DisplayFrame();
+                Frame frame = new Frame();
                 frame.x = 200 + offsetX;
                 frame.y = 200 + offsetY;
                 frame.width = item.width;
@@ -125,9 +120,9 @@ public class IniDisplay extends Display<IPackage> {
                 
                 track.frames.add(frame);
                 /*
-                DisplayTrack track2 = new DisplayTrack();
+                Track track2 = new Track();
                 
-                DisplayFrame frame2 = new DisplayFrame();
+                Frame frame2 = new Frame();
                 frame2.x = 300 + (j % n) * 80;
                 frame2.y = 80 + (j / n) * 80;
                 frame2.width = item.width;
@@ -139,12 +134,12 @@ public class IniDisplay extends Display<IPackage> {
                 
                 track2.frames.add(frame2);
                 
-                tracks.tracks.add(track2);
+                arg.tracks.add(track2);
                 
                 j++;*/
             }
         }
         
-        tracks.tracks.add(track);
+        arg.tracks.add(track);
     }
 }

@@ -1,12 +1,10 @@
 package cn.kizzzy.qqt.display;
 
-import cn.kizzzy.javafx.display.Display;
-import cn.kizzzy.javafx.display.DisplayAAA;
-import cn.kizzzy.javafx.display.DisplayAttribute;
-import cn.kizzzy.javafx.display.DisplayType;
-import cn.kizzzy.javafx.display.image.DisplayFrame;
-import cn.kizzzy.javafx.display.image.DisplayTrack;
-import cn.kizzzy.javafx.display.image.DisplayTracks;
+import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
+import cn.kizzzy.javafx.display.image.Frame;
+import cn.kizzzy.javafx.display.image.ImageArg;
+import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
+import cn.kizzzy.javafx.display.image.Track;
 import cn.kizzzy.qqt.GameMode;
 import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.MapCity;
@@ -16,36 +14,33 @@ import cn.kizzzy.qqt.MapFile;
 import cn.kizzzy.qqt.QqtElementXyer;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
+import cn.kizzzy.vfs.tree.Leaf;
 
 import java.awt.image.BufferedImage;
 
-@DisplayAttribute(suffix = {
+@DisplayLoaderAttribute(suffix = {
     "map",
 })
-public class MapDisplay extends Display<IPackage> {
-    
-    public MapDisplay(IPackage context, String path) {
-        super(context, path);
-    }
+public class MapDisplay implements ImageDisplayLoader {
     
     @Override
-    public DisplayAAA load() {
-        MapFile map = context.load(path, MapFile.class);
+    public ImageArg loadImage(IPackage vfs, Leaf leaf) throws Exception {
+        MapFile map = vfs.load(leaf.path, MapFile.class);
         if (map == null) {
             return null;
         }
         
-        MapElemProp prop = context.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
+        MapElemProp prop = vfs.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
         MapElemDataProvider provider = new MapElemDataProvider(prop);
         
-        DisplayTracks tracks = new DisplayTracks();
+        ImageArg arg = new ImageArg();
         
         for (int i = 2; i >= 0; --i) {
             MapFile.Layer layer = map.layers[i];
             for (int y = 0; y < map.height; ++y) {
                 for (int x = 0; x < map.width; ++x) {
                     MapFile.Element element = layer.elements[y][x];
-                    processElement(element, x, y, provider, tracks);
+                    processElement(vfs, element, x, y, provider, arg);
                 }
             }
         }
@@ -57,29 +52,29 @@ public class MapDisplay extends Display<IPackage> {
                 MapFile.Element element = mode.getSpecials()[i];
                 MapFile.Point point = points.points[i];
                 
-                processElement(element, point.x, point.y, provider, tracks);
+                processElement(vfs, element, point.x, point.y, provider, arg);
             }
         } catch (Exception e) {
         
         }
         
-        return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
+        return arg;
     }
     
-    private void processElement(MapFile.Element element, int x, int y, MapElemDataProvider provider, DisplayTracks tracks) {
+    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, ImageArg arg) {
         if (element.city() <= 0 || element.id() <= 0) {
             return;
         }
         
         MapCity city = MapCity.valueOf(element.city());
         String path = String.format("object/mapelem/%s/elem%d_stand.img", city.getName(), element.id());
-        ImgFile img = context.load(path, ImgFile.class);
+        ImgFile img = vfs.load(path, ImgFile.class);
         if (img == null) {
             return;
         }
         
-        DisplayTrack track = new DisplayTrack();
-        tracks.tracks.add(track);
+        Track track = new Track();
+        arg.tracks.add(track);
         
         for (ImgFile.Frame item : img.frames) {
             BufferedImage image = QqtImgHelper.toImage(item);
@@ -94,7 +89,7 @@ public class MapDisplay extends Display<IPackage> {
             
             QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
             
-            DisplayFrame frame = new DisplayFrame();
+            Frame frame = new Frame();
             frame.x = x * 40 - elementData.x + point.x;
             frame.y = y * 40 - elementData.y + point.y;
             frame.width = image.getWidth();

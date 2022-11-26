@@ -1,35 +1,30 @@
 package cn.kizzzy.qqt.display;
 
-import cn.kizzzy.javafx.display.Display;
-import cn.kizzzy.javafx.display.DisplayAAA;
-import cn.kizzzy.javafx.display.DisplayAttribute;
-import cn.kizzzy.javafx.display.DisplayType;
-import cn.kizzzy.javafx.display.image.DisplayFrame;
-import cn.kizzzy.javafx.display.image.DisplayTrack;
-import cn.kizzzy.javafx.display.image.DisplayTracks;
+import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
+import cn.kizzzy.javafx.display.image.Frame;
+import cn.kizzzy.javafx.display.image.Track;
+import cn.kizzzy.javafx.display.image.ImageArg;
+import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
 import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
+import cn.kizzzy.vfs.tree.Leaf;
 
 import java.awt.image.BufferedImage;
 
-@DisplayAttribute(suffix = {
+@DisplayLoaderAttribute(suffix = {
     "img",
 })
-public class ImgDisplay extends Display<IPackage> {
-    
-    public ImgDisplay(IPackage vfs, String path) {
-        super(vfs, path);
-    }
+public class ImgDisplay implements ImageDisplayLoader {
     
     @Override
-    public DisplayAAA load() {
-        ImgFile img = context.load(path, ImgFile.class);
+    public ImageArg loadImage(IPackage vfs, Leaf leaf) throws Exception {
+        ImgFile img = vfs.load(leaf.path, ImgFile.class);
         if (img == null) {
             return null;
         }
         
-        DisplayTrack track = new DisplayTrack();
+        Track track = new Track();
         int i = 0;
         for (ImgFile.Frame item : img.frames) {
             BufferedImage image = QqtImgHelper.toImage(item);
@@ -37,7 +32,7 @@ public class ImgDisplay extends Display<IPackage> {
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
-                DisplayFrame frame = new DisplayFrame();
+                Frame frame = new Frame();
                 frame.x = offsetX;
                 frame.y = offsetY;
                 frame.width = item.width;
@@ -51,8 +46,8 @@ public class ImgDisplay extends Display<IPackage> {
             i++;
         }
         
-        DisplayTracks tracks = new DisplayTracks();
-        tracks.tracks.add(track);
-        return new DisplayAAA(DisplayType.SHOW_IMAGE, tracks);
+        ImageArg arg = new ImageArg();
+        arg.tracks.add(track);
+        return arg;
     }
 }

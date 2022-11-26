@@ -5,10 +5,10 @@ import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.javafx.Stageable;
 import cn.kizzzy.javafx.custom.CustomControlParamter;
 import cn.kizzzy.javafx.custom.ICustomControl;
-import cn.kizzzy.javafx.display.image.DisplayFrame;
-import cn.kizzzy.javafx.display.image.DisplayTrack;
-import cn.kizzzy.javafx.display.image.DisplayTracks;
+import cn.kizzzy.javafx.display.image.Frame;
+import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayView;
+import cn.kizzzy.javafx.display.image.Track;
 import cn.kizzzy.qqt.AvatarFile;
 import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
@@ -118,7 +118,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     }
     
     private static class TargetFrame {
-        public DisplayFrame frame;
+        public Frame frame;
         public float originX;
         public float originY;
     }
@@ -136,7 +136,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     private Stage stage;
     private Args args;
     
-    private DisplayTracks tracks;
+    private ImageArg arg;
     private List<TargetFrame> targetFrames;
     
     @Override
@@ -178,13 +178,13 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         String action = matcher.group(3);
         
         targetFrames = new LinkedList<>();
-        tracks = preloadImpl(args.loadVfs, elementName, elementId, action);
-        if (tracks != null) {
+        arg = preloadImpl(args.loadVfs, elementName, elementId, action);
+        if (arg != null) {
             applyDrawImpl();
         }
     }
     
-    private DisplayTracks preloadImpl(IPackage vfs, String elementName, String elementId, String action) {
+    private ImageArg preloadImpl(IPackage vfs, String elementName, String elementId, String action) {
         AvatarFile zIndex = vfs.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
             LogHelper.info("load avatar z-index failed");
@@ -210,27 +210,27 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         }
         
         int i = 0;
-        DisplayTracks tracks = new DisplayTracks();
+        ImageArg arg = new ImageArg();
         for (AvatarFile.Element element : avatar.elementKvs.values()) {
             boolean target = Objects.equals(element.name, elementName);
             if (target) {
                 element.id = elementId;
             }
             float time = 167 * (i++);
-            processElement(element, action, time, tracks, wIndex, false, vfs, target);
-            processElement(element, action, time, tracks, wIndex, true, vfs, target);
+            processElement(element, action, time, arg, wIndex, false, vfs, target);
+            processElement(element, action, time, arg, wIndex, true, vfs, target);
         }
-        return tracks;
+        return arg;
     }
     
-    private void processElement(AvatarFile.Element element, String action, float time, DisplayTracks tracks, AvatarFile.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) {
+    private void processElement(AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
         ImgFile img = vfs.load(fullPath, ImgFile.class);
         if (img == null) {
             return;
         }
         
-        DisplayTrack track = new DisplayTrack();
+        Track track = new Track();
         
         for (int i = 0, n = img.count; i < n; ++i) {
             ImgFile.Frame item = img.frames[i];
@@ -244,7 +244,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
-                DisplayFrame frame = new DisplayFrame();
+                Frame frame = new Frame();
                 frame.x = 200 + offsetX;
                 frame.y = 200 + offsetY;
                 frame.width = item.width;
@@ -268,7 +268,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
             }
         }
         
-        tracks.tracks.add(track);
+        arg.tracks.add(track);
     }
     
     private Rect getInput() {
@@ -286,21 +286,21 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     }
     
     private void applyDrawImpl() {
-        if (tracks == null) {
+        if (arg == null) {
             return;
         }
         
         Rect rect = getInput();
         
         // change display pivot
-        tracks.pivotX = zeroX;
-        tracks.pivotY = zeroY;
+        arg.pivotX = zeroX;
+        arg.pivotY = zeroY;
         
         // change display border
-        tracks.borderX = (zeroX - rect.width / 2f);
-        tracks.borderY = (zeroY - rect.height);
-        tracks.borderW = rect.width;
-        tracks.borderH = rect.height;
+        arg.borderX = (zeroX - rect.width / 2f);
+        arg.borderY = (zeroY - rect.height);
+        arg.borderW = rect.width;
+        arg.borderH = rect.height;
         
         // change display target frame
         for (TargetFrame targetFrame : targetFrames) {
@@ -309,6 +309,6 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         }
         
         // redraw
-        image_idv.show(tracks);
+        image_idv.show(arg);
     }
 }

@@ -94,9 +94,8 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
     
     @Override
     public void initOperator(DisplayTabView tabView, IPackage vfs) {
-        displayer = new DisplayOperator<>("cn.kizzzy.qqt.display", tabView, IPackage.class);
+        displayer = new DisplayOperator("cn.kizzzy.qqt.display", tabView);
         displayer.load();
-        displayer.setContext(vfs);
     }
     
     @Override
