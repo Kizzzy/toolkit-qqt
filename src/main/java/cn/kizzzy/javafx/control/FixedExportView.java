@@ -1,10 +1,10 @@
-package cn.kizzzy.qqt.custom;
+package cn.kizzzy.javafx.control;
 
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
+import cn.kizzzy.javafx.JavafxControl;
+import cn.kizzzy.javafx.JavafxControlParameter;
 import cn.kizzzy.javafx.Stageable;
-import cn.kizzzy.javafx.custom.CustomControlParamter;
-import cn.kizzzy.javafx.custom.ICustomControl;
 import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayView;
@@ -33,7 +33,7 @@ import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-abstract class FixedExportViewBase extends AnchorPane implements ICustomControl {
+abstract class FixedExportViewBase extends AnchorPane implements JavafxControl {
     
     protected static class SliderValueChangedListener implements ChangeListener<Number> {
         
@@ -93,7 +93,7 @@ abstract class FixedExportViewBase extends AnchorPane implements ICustomControl 
     }
 }
 
-@CustomControlParamter(fxml = "/fxml/custom/fixed_export_view.fxml")
+@JavafxControlParameter(fxml = "/fxml/custom/fixed_export_view.fxml")
 public class FixedExportView extends FixedExportViewBase implements Initializable, Stageable<FixedExportView.Args> {
     
     public static class Args {
@@ -216,7 +216,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
             if (target) {
                 element.id = elementId;
             }
-            float time = 167 * (i++);
+            float time = 167;
             processElement(element, action, time, arg, wIndex, false, vfs, target);
             processElement(element, action, time, arg, wIndex, true, vfs, target);
         }
@@ -245,8 +245,8 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
                 Frame frame = new Frame();
-                frame.x = 200 + offsetX;
-                frame.y = 200 + offsetY;
+                frame.x = offsetX;
+                frame.y = offsetY;
                 frame.width = item.width;
                 frame.height = item.height;
                 frame.image = image;
