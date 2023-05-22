@@ -6,13 +6,16 @@
 
     <groupId>cn.kizzzy</groupId>
     <artifactId>toolkit-qqt</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${lib47.version}</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
+        <lib47.version>1.0-SNAPSHOT</lib47.version>
+        <maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
 
         <mainClass>cn.kizzzy.toolkit.MainOfQqt</mainClass>
     </properties>
@@ -21,26 +24,26 @@
 
         <dependency>
             <groupId>cn.kizzzy</groupId>
-            <artifactId>lib47-toolkit</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>cn.kizzzy</groupId>
-            <artifactId>lib47-qqt</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>cn.kizzzy</groupId>
             <artifactId>lib47-javafx-viewer</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${lib47.version}</version>
         </dependency>
 
         <dependency>
             <groupId>cn.kizzzy</groupId>
             <artifactId>lib47-json</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${lib47.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.kizzzy</groupId>
+            <artifactId>lib47-qqt</artifactId>
+            <version>${lib47.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.kizzzy</groupId>
+            <artifactId>lib47-toolkit</artifactId>
+            <version>${lib47.version}</version>
         </dependency>
 
     </dependencies>
