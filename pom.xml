@@ -13,6 +13,8 @@
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
+        <mainClass>cn.kizzzy.toolkit.MainOfQqt</mainClass>
     </properties>
 
     <dependencies>
@@ -58,7 +60,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>cn.kizzzy.toolkit.MainOfQqt</mainClass>
+                            <mainClass>${mainClass}</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
