@@ -1,6 +1,6 @@
 package cn.kizzzy.toolkit;
 
-import cn.kizzzy.toolkit.controller.Controllers;
+import cn.kizzzy.javafx.plugin.PluginView;
 import cn.kizzzy.toolkit.controller.QqtLocalController;
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -9,6 +9,6 @@ public class MainOfQqt extends Application {
     
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Controllers.start(null, primaryStage, QqtLocalController.class);
+        PluginView.show(null, primaryStage, QqtLocalController.class);
     }
 }

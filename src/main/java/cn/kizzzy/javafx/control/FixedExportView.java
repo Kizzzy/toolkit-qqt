@@ -2,8 +2,8 @@ package cn.kizzzy.javafx.control;
 
 import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.helper.LogHelper;
-import cn.kizzzy.javafx.JavafxControl;
 import cn.kizzzy.javafx.JavafxControlParameter;
+import cn.kizzzy.javafx.JavafxView;
 import cn.kizzzy.javafx.Stageable;
 import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
@@ -21,7 +21,6 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
 import java.awt.image.BufferedImage;
@@ -33,7 +32,7 @@ import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-abstract class FixedExportViewBase extends AnchorPane implements JavafxControl {
+abstract class FixedExportViewBase extends JavafxView {
     
     protected static class SliderValueChangedListener implements ChangeListener<Number> {
         
@@ -87,10 +86,6 @@ abstract class FixedExportViewBase extends AnchorPane implements JavafxControl {
     
     @FXML
     protected ImageDisplayView image_idv;
-    
-    public FixedExportViewBase() {
-        init();
-    }
 }
 
 @JavafxControlParameter(fxml = "/fxml/custom/fixed_export_view.fxml")
