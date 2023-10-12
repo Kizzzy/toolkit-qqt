@@ -1,7 +1,6 @@
 package cn.kizzzy.javafx.control;
 
 import cn.kizzzy.helper.FileHelper;
-import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.javafx.JavafxControlParameter;
 import cn.kizzzy.javafx.JavafxView;
 import cn.kizzzy.javafx.Stageable;
@@ -22,6 +21,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.net.URL;
@@ -91,6 +92,8 @@ abstract class FixedExportViewBase extends JavafxView {
 @JavafxControlParameter(fxml = "/fxml/custom/fixed_export_view.fxml")
 public class FixedExportView extends FixedExportViewBase implements Initializable, Stageable<FixedExportView.Args> {
     
+    private static final Logger logger = LoggerFactory.getLogger(FixedExportView.class);
+    
     public static class Args {
         public String path;
         public ImgFile img;
@@ -149,10 +152,12 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         Rect rect = getInput();
         
         for (ImgFile.Frame item : args.img.frames) {
-            BufferedImage image = QqtImgHelper.toImageByCustom(item, rect.x, rect.y, rect.width, rect.height);
-            if (image != null) {
+            try {
+                BufferedImage image = QqtImgHelper.toImageByCustom(item, rect.x, rect.y, rect.width, rect.height);
                 String fullPath = args.path.replace(".img", String.format("-%02d.png", item.index));
                 args.saveVfs.save(fullPath, image);
+            } catch (Exception e) {
+                logger.error("export error", e);
             }
         }
     }
@@ -162,45 +167,50 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         this.stage = stage;
         this.args = args;
         
-        String name = FileHelper.getName(args.path);
-        Matcher matcher = Pattern.compile("([a-zA-Z]+)(\\d+)_(\\w+).img").matcher(name);
-        if (!matcher.matches()) {
-            return;
-        }
-        
-        String elementName = matcher.group(1);
-        String elementId = matcher.group(2);
-        String action = matcher.group(3);
-        
-        targetFrames = new LinkedList<>();
-        arg = preloadImpl(args.loadVfs, elementName, elementId, action);
-        if (arg != null) {
-            applyDrawImpl();
+        try {
+            String name = FileHelper.getName(args.path);
+            Matcher matcher = Pattern.compile("([a-zA-Z]+)(\\d+)_(\\w+).img").matcher(name);
+            if (!matcher.matches()) {
+                return;
+            }
+            
+            String elementName = matcher.group(1);
+            String elementId = matcher.group(2);
+            String action = matcher.group(3);
+            
+            targetFrames = new LinkedList<>();
+            
+            arg = preloadImpl(args.loadVfs, elementName, elementId, action);
+            if (arg != null) {
+                applyDrawImpl();
+            }
+        } catch (Exception e) {
+            logger.error("show error", e);
         }
     }
     
-    private ImageArg preloadImpl(IPackage vfs, String elementName, String elementId, String action) {
+    private ImageArg preloadImpl(IPackage vfs, String elementName, String elementId, String action) throws Exception {
         AvatarFile zIndex = vfs.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
-            LogHelper.info("load avatar z-index failed");
+            logger.info("load avatar z-index failed");
             return null;
         }
         
         AvatarFile.Avatar wIndex = zIndex.avatarKvs.get(action);
         if (wIndex == null) {
-            LogHelper.info("z-index of this action is not found");
+            logger.info("z-index of this action is not found");
             return null;
         }
         
         AvatarFile qqtAvatar = vfs.load("object/player/player2.ini", AvatarFile.class);
         if (qqtAvatar == null) {
-            LogHelper.info("load avatar failed");
+            logger.info("load avatar failed");
             return null;
         }
         
         AvatarFile.Avatar avatar = qqtAvatar.avatarKvs.get(action);
         if (avatar == null) {
-            LogHelper.info("avatar of this action is not found");
+            logger.info("avatar of this action is not found");
             return null;
         }
         
@@ -218,7 +228,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
         return arg;
     }
     
-    private void processElement(AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) {
+    private void processElement(AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed, IPackage vfs, boolean target) throws Exception {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
         ImgFile img = vfs.load(fullPath, ImgFile.class);
         if (img == null) {

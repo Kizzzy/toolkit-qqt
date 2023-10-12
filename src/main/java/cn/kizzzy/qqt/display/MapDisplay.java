@@ -45,23 +45,19 @@ public class MapDisplay implements ImageDisplayLoader {
             }
         }
         
-        try {
-            GameMode mode = GameMode.valueOf(map.gameMode);
-            MapFile.Points points = map.points[3];
-            for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
-                MapFile.Element element = mode.getSpecials()[i];
-                MapFile.Point point = points.points[i];
-                
-                processElement(vfs, element, point.x, point.y, provider, arg);
-            }
-        } catch (Exception e) {
-        
+        GameMode mode = GameMode.valueOf(map.gameMode);
+        MapFile.Points points = map.points[3];
+        for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
+            MapFile.Element element = mode.getSpecials()[i];
+            MapFile.Point point = points.points[i];
+            
+            processElement(vfs, element, point.x, point.y, provider, arg);
         }
         
         return arg;
     }
     
-    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, ImageArg arg) {
+    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, ImageArg arg) throws Exception {
         if (element.city() <= 0 || element.id() <= 0) {
             return;
         }

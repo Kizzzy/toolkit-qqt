@@ -1,7 +1,6 @@
 package cn.kizzzy.javafx.viewer.executor;
 
 import cn.kizzzy.helper.FileHelper;
-import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.helper.PrintArgs;
 import cn.kizzzy.helper.StringHelper;
 import cn.kizzzy.image.vfs.handler.BufferedImageHandler;
@@ -107,7 +106,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         if (leaf.name.endsWith(".img")) {
             ImgFile img = vfs.load(leaf.path, ImgFile.class);
             if (img != null) {
-                //LogHelper.debug(PrintHelper.ToString(img, printArgs));
+                //logger.debug(PrintHelper.ToString(img, printArgs));
             }
         }
     }
@@ -337,7 +336,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
                     saveVfs.save(leaf.path, data);
                 }
             } catch (Exception e) {
-                LogHelper.info(String.format("export file failed: %s", leaf.path), e);
+                logger.info(String.format("export file failed: %s", leaf.path), e);
             }
         }
     }
@@ -386,7 +385,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
                     }
                 }
             } catch (Exception e) {
-                LogHelper.info(String.format("export image failed: %s", leaf.name), e);
+                logger.info(String.format("export image failed: %s", leaf.name), e);
             }
         }
     }
@@ -457,19 +456,19 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
             MapElemProp prop = vfs.load("object\\mapElem\\mapElem.prop", MapElemProp.class);
             MapElemDataProvider provider = new MapElemDataProvider(prop);
             
-            BufferedImage image = new BufferedImage(map.width * 40 + 160, map.height * 40 + 160, BufferedImage.TYPE_INT_ARGB);
-            
-            for (int i = 2; i >= 0; --i) {
-                MapFile.Layer layer = map.layers[i];
-                for (int y = 0; y < map.height; ++y) {
-                    for (int x = 0; x < map.width; ++x) {
-                        MapFile.Element element = layer.elements[y][x];
-                        processElement(args.getVfs(), element, x, y, provider, image);
+            try {
+                BufferedImage image = new BufferedImage(map.width * 40 + 160, map.height * 40 + 160, BufferedImage.TYPE_INT_ARGB);
+                
+                for (int i = 2; i >= 0; --i) {
+                    MapFile.Layer layer = map.layers[i];
+                    for (int y = 0; y < map.height; ++y) {
+                        for (int x = 0; x < map.width; ++x) {
+                            MapFile.Element element = layer.elements[y][x];
+                            processElement(args.getVfs(), element, x, y, provider, image);
+                        }
                     }
                 }
-            }
-            
-            try {
+                
                 GameMode mode = GameMode.valueOf(map.gameMode);
                 MapFile.Points points = map.points[3];
                 for (int i = 0; i < mode.getSpecials().length && i < points.points.length; ++i) {
@@ -478,18 +477,18 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
                     
                     processElement(args.getVfs(), element, point.x, point.y, provider, image);
                 }
+                
+                IPackage saveVfs = new FilePackage(config.export_image_path + "/map");
+                saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
+                
+                saveVfs.save(leaf.path + ".png", image);
             } catch (Exception e) {
-            
+                logger.error("save map failed", e);
             }
-            
-            IPackage saveVfs = new FilePackage(config.export_image_path + "/map");
-            saveVfs.addHandler(BufferedImage.class, new BufferedImageHandler());
-            
-            saveVfs.save(leaf.path + ".png", image);
         }
     }
     
-    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) {
+    private void processElement(IPackage vfs, MapFile.Element element, int x, int y, MapElemDataProvider provider, BufferedImage graphics) throws Exception {
         if (element.city() <= 0 || element.id() <= 0) {
             return;
         }

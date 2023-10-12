@@ -1,6 +1,5 @@
 package cn.kizzzy.qqt.display;
 
-import cn.kizzzy.helper.LogHelper;
 import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
 import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
@@ -11,6 +10,8 @@ import cn.kizzzy.qqt.ImgFile;
 import cn.kizzzy.qqt.helper.QqtImgHelper;
 import cn.kizzzy.vfs.IPackage;
 import cn.kizzzy.vfs.tree.Leaf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 
@@ -18,6 +19,8 @@ import java.awt.image.BufferedImage;
     "ini",
 }, priority = 999)
 public class IniDisplay implements ImageDisplayLoader {
+    
+    private static final Logger logger = LoggerFactory.getLogger(IniDisplay.class);
     
     private static final String[] COLORS = new String[]{
         "#d34a37ff",
@@ -49,25 +52,25 @@ public class IniDisplay implements ImageDisplayLoader {
         
         AvatarFile zIndex = vfs.load("object/player/player_z.ini", AvatarFile.class);
         if (zIndex == null) {
-            LogHelper.info("load avatar z-index failed");
+            logger.info("load avatar z-index failed");
             return null;
         }
         
         AvatarFile.Avatar wIndex = zIndex.avatarKvs.get(action);
         if (wIndex == null) {
-            LogHelper.info("z-index of this action is not found");
+            logger.info("z-index of this action is not found");
             return null;
         }
         
         AvatarFile qqtAvatar = vfs.load(leaf.path, AvatarFile.class);
         if (qqtAvatar == null) {
-            LogHelper.info("load avatar failed");
+            logger.info("load avatar failed");
             return null;
         }
         
         AvatarFile.Avatar avatar = qqtAvatar.avatarKvs.get(action);
         if (avatar == null) {
-            LogHelper.info("avatar of this action is not found");
+            logger.info("avatar of this action is not found");
             return null;
         }
         
@@ -86,7 +89,7 @@ public class IniDisplay implements ImageDisplayLoader {
         return arg;
     }
     
-    private void processElement(IPackage vfs, AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed) {
+    private void processElement(IPackage vfs, AvatarFile.Element element, String action, float time, ImageArg arg, AvatarFile.Avatar zAvatar, boolean mixed) throws Exception {
         String fullPath = String.format("object/%s/%s%s_%s%s.img", element.name, element.name, element.id, action, mixed ? "_m" : "");
         ImgFile img = vfs.load(fullPath, ImgFile.class);
         if (img == null) {
