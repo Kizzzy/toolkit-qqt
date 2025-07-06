@@ -1,7 +1,6 @@
 package cn.kizzzy.javafx.viewer.executor;
 
 import cn.kizzzy.helper.FileHelper;
-import cn.kizzzy.helper.PrintArgs;
 import cn.kizzzy.helper.StringHelper;
 import cn.kizzzy.image.vfs.handler.BufferedImageHandler;
 import cn.kizzzy.javafx.StageHelper;
@@ -58,8 +57,6 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
     
     private QqtConfig config;
     
-    private PrintArgs[] printArgs;
-    
     @Override
     public void initialize(ViewerExecutorArgs args) {
         IPackage userVfs = args.getUserVfs();
@@ -70,17 +67,6 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         
         StageHelper stageHelper = args.getStageHelper();
         stageHelper.addFactory(FixedExportView::new, FixedExportView.class);
-        
-        printArgs = new PrintArgs[]{
-            new PrintArgs(ImgFile.class, null, true),
-            new PrintArgs(ImgFile.Frame.class, new PrintArgs.Item[]{
-                new PrintArgs.Item("file", true),
-                new PrintArgs.Item("offset", true),
-                new PrintArgs.Item("size", true),
-                new PrintArgs.Item("offset_alpha", true),
-                new PrintArgs.Item("size_alpha", true),
-            }, false),
-        };
     }
     
     @Override
@@ -106,7 +92,7 @@ public class QqtViewerExecutor extends AbstractViewerExecutor {
         if (leaf.name.endsWith(".img")) {
             ImgFile img = vfs.load(leaf.path, ImgFile.class);
             if (img != null) {
-                //logger.debug(PrintHelper.ToString(img, printArgs));
+                // logger.debug(PrintHelper.ToString(img, printArgs));
             }
         }
     }
