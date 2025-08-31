@@ -1,7 +1,6 @@
 package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
-import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
 import cn.kizzzy.javafx.display.image.Track;
@@ -32,16 +31,15 @@ public class ImgDisplay implements ImageDisplayLoader {
                 float offsetX = -img.maxWidth / 2f - img.offsetX + frame.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + frame.offsetY + 20;
                 
-                Frame f = new Frame();
-                f.x = offsetX;
-                f.y = offsetY;
-                f.width = frame.width;
-                f.height = frame.height;
-                f.image = image;
-                f.time = 167;
-                f.extra = String.format("%02d/%02d", i + 1, img.count);
+                Track.StaticFrame sf = new Track.StaticFrame();
+                sf.x = offsetX;
+                sf.y = offsetY;
+                sf.width = frame.width;
+                sf.height = frame.height;
+                sf.image = image;
+                sf.extra = String.format("%02d/%02d", i + 1, img.count);
                 
-                track.frames.add(f);
+                track.sfs.add(sf);
             }
             i++;
         }

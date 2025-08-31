@@ -1,7 +1,6 @@
 package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
-import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
 import cn.kizzzy.javafx.display.image.Track;
@@ -85,16 +84,15 @@ public class MapDisplay implements ImageDisplayLoader {
             
             QqtElementXyer.Point point = QqtElementXyer.INS.GetXy(element.value);
             
-            Frame frame = new Frame();
-            frame.x = x * 40 - elementData.x + point.x;
-            frame.y = y * 40 - elementData.y + point.y;
-            frame.width = image.getWidth();
-            frame.height = image.getHeight();
-            frame.image = image;
-            frame.time = 167;
-            frame.extra = "";
+            Track.StaticFrame sf = new Track.StaticFrame();
+            sf.x = x * 40 - elementData.x + point.x;
+            sf.y = y * 40 - elementData.y + point.y;
+            sf.width = image.getWidth();
+            sf.height = image.getHeight();
+            sf.image = image;
+            sf.extra = "";
             
-            track.frames.add(frame);
+            track.sfs.add(sf);
         }
     }
 }

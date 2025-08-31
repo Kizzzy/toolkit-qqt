@@ -1,7 +1,6 @@
 package cn.kizzzy.qqt.display;
 
 import cn.kizzzy.javafx.display.DisplayLoaderAttribute;
-import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayLoader;
 import cn.kizzzy.javafx.display.image.Track;
@@ -40,7 +39,7 @@ public class IniDisplay implements ImageDisplayLoader {
         "down",
     };
     
-    //int j = 0;
+    // int j = 0;
     
     @Override
     public ImageArg loadImage(IPackage vfs, Leaf leaf) throws Exception {
@@ -78,7 +77,7 @@ public class IniDisplay implements ImageDisplayLoader {
         arg.colors = COLORS;
         
         int i = 0;
-        //j = 0;
+        // j = 0;
         
         for (AvatarFile.Element element : avatar.elementKvs.values()) {
             float time = 167 * (i++);
@@ -110,18 +109,18 @@ public class IniDisplay implements ImageDisplayLoader {
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
-                Frame frame = new Frame();
-                frame.x = 200 + offsetX;
-                frame.y = 200 + offsetY;
-                frame.width = item.width;
-                frame.height = item.height;
-                frame.image = image;
-                frame.time = time;
-                frame.mixed = mixed;
-                frame.order = zElement == null ? 0 : Integer.parseInt(zElement.id);
-                //frame.extra = String.format("%02d/%02d", i, img.count);
+                Track.StaticFrame sf = new Track.StaticFrame();
+                sf.x = offsetX;
+                sf.y = offsetY;
+                sf.width = item.width;
+                sf.height = item.height;
+                sf.image = image;
+                sf.time = time;
+                sf.mixed = mixed;
+                sf.order = zElement == null ? 0 : Integer.parseInt(zElement.id);
+                sf.extra = String.format("%02d/%02d", i, img.count);
                 
-                track.frames.add(frame);
+                track.sfs.add(sf);
                 /*
                 Track track2 = new Track();
                 
@@ -133,7 +132,7 @@ public class IniDisplay implements ImageDisplayLoader {
                 frame2.image = image;
                 frame2.time = time;
                 frame2.mixed = mixed;
-                //frame.extra = String.format("%02d/%02d", i, img.count);
+                //sf.extra = String.format("%02d/%02d", i, img.count);
                 
                 track2.frames.add(frame2);
                 

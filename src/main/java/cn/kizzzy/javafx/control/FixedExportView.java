@@ -4,7 +4,6 @@ import cn.kizzzy.helper.FileHelper;
 import cn.kizzzy.javafx.JavafxControlParameter;
 import cn.kizzzy.javafx.JavafxView;
 import cn.kizzzy.javafx.Stageable;
-import cn.kizzzy.javafx.display.image.Frame;
 import cn.kizzzy.javafx.display.image.ImageArg;
 import cn.kizzzy.javafx.display.image.ImageDisplayView;
 import cn.kizzzy.javafx.display.image.Track;
@@ -116,7 +115,7 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
     }
     
     private static class TargetFrame {
-        public Frame frame;
+        public Track.StaticFrame frame;
         public float originX;
         public float originY;
     }
@@ -249,24 +248,24 @@ public class FixedExportView extends FixedExportViewBase implements Initializabl
                 float offsetX = -img.maxWidth / 2f - img.offsetX + item.offsetX;
                 float offsetY = -img.maxHeight - img.offsetY + item.offsetY + 20;
                 
-                Frame frame = new Frame();
-                frame.x = offsetX;
-                frame.y = offsetY;
-                frame.width = item.width;
-                frame.height = item.height;
-                frame.image = image;
-                frame.time = time;
-                frame.mixed = mixed;
-                frame.order = zElement == null ? 0 : Integer.parseInt(zElement.id);
-                //frame.extra = String.format("%02d/%02d", i, img.count);
+                Track.StaticFrame sf = new Track.StaticFrame();
+                sf.x = offsetX;
+                sf.y = offsetY;
+                sf.width = item.width;
+                sf.height = item.height;
+                sf.image = image;
+                sf.time = time;
+                sf.mixed = mixed;
+                sf.order = zElement == null ? 0 : Integer.parseInt(zElement.id);
+                // sf.extra = String.format("%02d/%02d", i, img.count);
                 
-                track.frames.add(frame);
+                track.sfs.add(sf);
                 
                 if (target) {
                     TargetFrame targetFrame = new TargetFrame();
-                    targetFrame.frame = frame;
-                    targetFrame.originX = frame.x;
-                    targetFrame.originY = frame.y;
+                    targetFrame.frame = sf;
+                    targetFrame.originX = sf.x;
+                    targetFrame.originY = sf.y;
                     
                     targetFrames.add(targetFrame);
                 }
